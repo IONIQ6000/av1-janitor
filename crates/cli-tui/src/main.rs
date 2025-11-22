@@ -1175,165 +1175,6 @@ impl App {
         }
     }
     
-    fn get_gpu_usage(&self) -> f64 {
-        use std::process::Command;
-        
-        // First, find which card corresponds to Intel GPU (i915 driver)
-        // card0 might be ASpeed (ast driver), Intel Arc could be card1+
-        let mut intel_card_num = None;
-        for card_num in 0..4 {
-            let driver_link = format!("/sys/class/drm/card{}/device/driver", card_num);
-            if let Ok(link) = std::fs::read_link(&driver_link) {
-                // The symlink points to something like ../../../../../../bus/pci/drivers/i915
-                // Extract the driver name from the path
-                if let Some(driver_name) = link.iter().last().and_then(|p| p.to_str()) {
-                    if driver_name == "i915" {
-                        intel_card_num = Some(card_num);
-                        break;
-                    }
-                }
-            }
-        }
-        
-        // If we found Intel GPU card, try reading frequency from it
-        if let Some(card_num) = intel_card_num {
-            // Method 1: Try reading frequency files directly from card directory
-            // Intel Arc GPUs have these files: gt_min_freq_mhz, gt_max_freq_mhz, gt_cur_freq_mhz
-            let min_path = format!("/sys/class/drm/card{}/gt_min_freq_mhz", card_num);
-            let max_path = format!("/sys/class/drm/card{}/gt_max_freq_mhz", card_num);
-            let curr_path = format!("/sys/class/drm/card{}/gt_cur_freq_mhz", card_num);
-            
-            if let (Ok(min_content), Ok(max_content), Ok(curr_content)) = (
-                std::fs::read_to_string(&min_path),
-                std::fs::read_to_string(&max_path),
-                std::fs::read_to_string(&curr_path),
-            ) {
-                if let (Ok(min_freq), Ok(max_freq), Ok(curr_freq)) = (
-                    min_content.trim().parse::<f64>(),
-                    max_content.trim().parse::<f64>(),
-                    curr_content.trim().parse::<f64>(),
-                ) {
-                    if max_freq > min_freq && curr_freq >= min_freq {
-                        let usage = ((curr_freq - min_freq) / (max_freq - min_freq)) * 100.0;
-                        return usage.min(100.0).max(0.0);
-                    }
-                }
-            }
-            
-            // Method 2: Try reading from gt subdirectories (gt0, gt1, etc.)
-            let mut min_freq = 0.0;
-            let mut max_freq = 0.0;
-            let mut curr_freq = 0.0;
-            
-            for gt_num in 0..4 {
-                let min_path = format!("/sys/class/drm/card{}/gt{}/gt_min_freq_mhz", card_num, gt_num);
-                let max_path = format!("/sys/class/drm/card{}/gt{}/gt_max_freq_mhz", card_num, gt_num);
-                let curr_path = format!("/sys/class/drm/card{}/gt{}/gt_cur_freq_mhz", card_num, gt_num);
-                
-                if let Ok(content) = std::fs::read_to_string(&min_path) {
-                    if let Ok(val) = content.trim().parse::<f64>() {
-                        if min_freq == 0.0 || val < min_freq {
-                            min_freq = val;
-                        }
-                    }
-                }
-                if let Ok(content) = std::fs::read_to_string(&max_path) {
-                    if let Ok(val) = content.trim().parse::<f64>() {
-                        if val > max_freq {
-                            max_freq = val;
-                        }
-                    }
-                }
-                if let Ok(content) = std::fs::read_to_string(&curr_path) {
-                    if let Ok(val) = content.trim().parse::<f64>() {
-                        if val > curr_freq {
-                            curr_freq = val;
-                        }
-                    }
-                }
-            }
-            
-            // If we have frequency info from gt subdirectories, calculate usage
-            if max_freq > 0.0 && curr_freq > 0.0 && min_freq > 0.0 {
-                let usage = if max_freq > min_freq {
-                    ((curr_freq - min_freq) / (max_freq - min_freq)) * 100.0
-                } else {
-                    0.0
-                };
-                return usage.min(100.0).max(0.0);
-            }
-        }
-        
-        // Method 2: Try reading from /sys/kernel/debug/dri/*/i915_frequency_info
-        // This might have permission issues, but try anyway
-        for dri_num in 0..4 {
-            let debug_path = format!("/sys/kernel/debug/dri/{}/i915_frequency_info", dri_num);
-            if let Ok(content) = std::fs::read_to_string(&debug_path) {
-                for line in content.lines() {
-                    if let Some(busy_pos) = line.to_lowercase().find("busy") {
-                        let original_line = &line[busy_pos..];
-                        if let Some(pct_pos) = original_line.find('%') {
-                            let before_pct = &original_line[..pct_pos];
-                            let parts: Vec<&str> = before_pct.split_whitespace().collect();
-                            if let Some(last_part) = parts.last() {
-                                if let Ok(val) = last_part.parse::<f64>() {
-                                    return val.min(100.0).max(0.0);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Method 3: Try reading from device directory
-        let device_dir = "/sys/class/drm/card0/device";
-        if let Ok(entries) = std::fs::read_dir(device_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    let name_lower = name.to_lowercase();
-                    if name_lower.contains("busy") || name_lower.contains("utilization") || 
-                       name_lower.contains("load") || name_lower.contains("usage") {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            let trimmed = content.trim();
-                            if let Ok(val) = trimmed.parse::<f64>() {
-                                let pct = if val > 1.0 { val } else { val * 100.0 };
-                                return pct.min(100.0).max(0.0);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Method 4: Try using intel_gpu_top with timeout
-        if let Ok(output) = Command::new("timeout")
-            .args(&["1", "intel_gpu_top", "-l", "1", "-n", "1"])
-            .output()
-        {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines() {
-                    let line_lower = line.to_lowercase();
-                    if line_lower.contains("busy") {
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        for part in parts {
-                            if part.ends_with('%') {
-                                if let Ok(val) = part.trim_end_matches('%').parse::<f64>() {
-                                    return val.min(100.0).max(0.0);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Fallback: return 0 if we can't read GPU usage
-        0.0
-    }
-
     /// Detect progress for a running job by checking temp file state
     fn detect_job_progress(&mut self, job: &Job) {
         use std::fs;
@@ -2550,14 +2391,13 @@ fn render_detail_view(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_top_bar(f: &mut Frame, app: &App, area: Rect) {
-    // Split top bar into four parts: Activity, CPU, Memory, and GPU
+    // Split top bar into three parts: Activity, CPU, and Memory
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(16),  // Activity status
-            Constraint::Percentage(28),
-            Constraint::Percentage(36),
-            Constraint::Percentage(36),
+            Constraint::Percentage(42),
+            Constraint::Percentage(42),
         ])
         .split(area);
     
@@ -2628,23 +2468,6 @@ fn render_top_bar(f: &mut Frame, app: &App, area: Rect) {
         .percent(memory_percent_u16)
         .label(format!("{:.1}%", memory_percent));
     f.render_widget(memory_gauge, gauge_chunks[1]);
-
-    // GPU gauge - use metric colors based on usage level
-    let gpu_usage = app.get_gpu_usage();
-    let gpu_percent_u16 = gpu_usage.min(100.0).max(0.0) as u16;
-    let gpu_color = if gpu_usage > 80.0 {
-        app.color_scheme.metric_high
-    } else if gpu_usage > 50.0 {
-        app.color_scheme.metric_medium
-    } else {
-        app.color_scheme.metric_low
-    };
-    let gpu_gauge = Gauge::default()
-        .block(Block::default().borders(Borders::ALL).title("🎮 GPU"))
-        .gauge_style(Style::default().fg(gpu_color))
-        .percent(gpu_percent_u16)
-        .label(format!("{:.1}%", gpu_usage));
-    f.render_widget(gpu_gauge, gauge_chunks[2]);
 }
 
 fn render_job_table(f: &mut Frame, app: &mut App, area: Rect) {
