@@ -876,12 +876,9 @@ struct App {
 
 impl App {
     /// Generate temp output path using configured temp_output_dir (same logic as daemon)
-    fn get_temp_output_path(&self, source_path: &Path) -> PathBuf {
-        let filename = source_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown");
-        self.temp_output_dir.join(format!("{}.tmp.av1.mkv", filename))
+    /// The daemon uses job.id as the filename, so we need to look up the job ID
+    fn get_temp_output_path(&self, job_id: &str) -> PathBuf {
+        self.temp_output_dir.join(format!("{}.mkv", job_id))
     }
     
     fn new(job_state_dir: PathBuf, temp_output_dir: PathBuf) -> Self {
@@ -1188,7 +1185,7 @@ impl App {
         }
         
         let now = Utc::now();
-        let temp_output = self.get_temp_output_path(&job.source_path);
+        let temp_output = self.get_temp_output_path(&job.id);
         let orig_backup = job.source_path.with_extension("orig.mkv");
         
         // Get original size
@@ -1331,7 +1328,7 @@ impl App {
             if let Some((source_path, original_bytes, started_at, video_codec, _status)) = job_data {
                 // Create a temporary job-like structure to pass progress detection info
                 // Since we can't mutate self while iterating, we'll update progress directly
-                let temp_output = self.get_temp_output_path(&source_path);
+                let temp_output = self.get_temp_output_path(job_id);
                 let original_size = original_bytes.unwrap_or(0);
                 
                 // Check if temp file exists and update progress
