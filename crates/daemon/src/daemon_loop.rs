@@ -10,7 +10,7 @@ use crate::stable::check_stability;
 use crate::probe::probe_file;
 use crate::classify::classify_source;
 use crate::gates::{check_gates, GateResult};
-use crate::jobs::{JobStatus, create_job, save_job, update_job_status};
+use crate::jobs::{JobStatus, create_job, save_job, update_job_status, load_all_jobs};
 use crate::encode::{build_command, execute_encode, JobExecutor};
 use crate::validate::validate_output;
 use crate::size_gate::{check_size_gate, SizeGateResult};
@@ -37,6 +37,12 @@ pub async fn run_daemon_loop(
     loop {
         info!("Starting scan cycle");
         
+        // Load existing jobs to avoid duplicates
+        let existing_jobs = load_all_jobs(&config.job_state_dir).unwrap_or_else(|e| {
+            warn!("Failed to load existing jobs: {}", e);
+            Vec::new()
+        });
+        
         // Scan all library roots for video files
         match scan_libraries(&config.library_roots) {
             Ok(candidates) => {
@@ -49,6 +55,7 @@ pub async fn run_daemon_loop(
                         &config,
                         &encoder,
                         &executor,
+                        &existing_jobs,
                     ).await {
                         error!("Error processing candidate: {}", e);
                         // Continue with next file
@@ -72,9 +79,21 @@ async fn process_candidate(
     config: &DaemonConfig,
     encoder: &SelectedEncoder,
     executor: &JobExecutor,
+    existing_jobs: &[crate::jobs::Job],
 ) -> Result<()> {
     let path = &candidate.path;
     debug!("Processing candidate: {:?}", path);
+    
+    // Step 0: Check if job already exists for this file
+    let has_active_job = existing_jobs.iter().any(|job| {
+        job.source_path == *path && 
+        (job.status == JobStatus::Pending || job.status == JobStatus::Running)
+    });
+    
+    if has_active_job {
+        debug!("Job already exists for file, skipping: {:?}", path);
+        return Ok(());
+    }
     
     // Step 1: Check for skip marker
     if has_skip_marker(path) {
