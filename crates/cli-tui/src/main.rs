@@ -1552,13 +1552,16 @@ fn main() -> Result<()> {
     let args = Args::parse();
     
     // Load config - if no config specified, try default location first (same as daemon)
-    // Store default path in a variable that lives long enough
-    let default_config_path = PathBuf::from("/etc/av1d/config.json");
+    // Try both .toml and .json extensions
+    let default_toml_path = PathBuf::from("/etc/av1d/config.toml");
+    let default_json_path = PathBuf::from("/etc/av1d/config.json");
     
     let config_path = if let Some(ref path) = args.config {
         Some(path.as_path())
-    } else if default_config_path.exists() {
-        Some(default_config_path.as_path())
+    } else if default_toml_path.exists() {
+        Some(default_toml_path.as_path())
+    } else if default_json_path.exists() {
+        Some(default_json_path.as_path())
     } else {
         None
     };
