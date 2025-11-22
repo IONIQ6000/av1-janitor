@@ -31,6 +31,13 @@ print_info "Pulling latest code from git..."
 git pull
 
 print_info "Building release binaries..."
+# Source cargo environment if it exists
+if [ -f "$HOME/.cargo/env" ]; then
+    source "$HOME/.cargo/env"
+elif [ -f "/root/.cargo/env" ]; then
+    source "/root/.cargo/env"
+fi
+
 cargo build --release
 
 print_info "Installing binaries..."
