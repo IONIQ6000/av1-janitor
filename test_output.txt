@@ -1,0 +1,203 @@
+warning: unused import: `Context`
+ --> crates/daemon/src/scan.rs:1:14
+  |
+1 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `job`
+  --> crates/daemon/src/encode/mod.rs:40:29
+   |
+40 | ...ute_encode(job: &mut Job, command...
+   |               ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `command`
+  --> crates/daemon/src/encode/mod.rs:40:44
+   |
+40 | ... &mut Job, command: Vec<String>) ...
+   |               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_command`
+
+warning: unused variable: `output_path`
+  --> crates/daemon/src/validate.rs:20:5
+   |
+20 |     output_path: &Path,
+   |     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_output_path`
+
+warning: unused variable: `original_probe`
+  --> crates/daemon/src/validate.rs:21:5
+   |
+21 |     original_probe: &ProbeResult,
+   |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original_probe`
+
+warning: unused variable: `original`
+ --> crates/daemon/src/replace.rs:5:5
+  |
+5 |     original: &Path,
+  |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original`
+
+warning: unused variable: `new`
+ --> crates/daemon/src/replace.rs:6:5
+  |
+6 |     new: &Path,
+  |     ^^^ help: if this is intentional, prefix it with an underscore: `_new`
+
+warning: unused variable: `keep_original`
+ --> crates/daemon/src/replace.rs:7:5
+  |
+7 |     keep_original: bool,
+  |     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_keep_original`
+
+warning: unused variable: `probe`
+  --> crates/daemon/src/jobs.rs:63:5
+   |
+63 |     probe: ProbeResult,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_probe`
+
+warning: `av1d-daemon` (lib) generated 9 warnings (run `cargo fix --lib -p av1d-daemon` to apply 1 suggestion)
+   Compiling av1d-daemon v0.1.0 (/home/dark-rock/av1-janitor/crates/daemon)
+error[E0599]: the method `prop_map` exists for tuple `(..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ..., ...)`, but its trait bounds were not satisfied
+   --> crates/daemon/tests/jobs_properties.rs:210:7
+    |
+191 | /     (
+192 | |         path_strategy(),
+193 | |         option_path_strategy(),
+194 | |         job_status_strategy(),
+...   |
+209 | |         option_bool_strategy(),
+210 | |     ).prop_map(|(
+    | |      -^^^^^^^^ method cannot be called due to unsatisfied trait bounds
+    | |______|
+    |
+    |
+    = note: the following trait bounds were not satisfied:
+            `(impl proptest::strategy::Strategy<Value = PathBuf>, impl proptest::strategy::Strategy<Value = Option<PathBuf>>, impl proptest::strategy::Strategy<Value = JobStatus>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = bool>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<bool>>): proptest::strategy::Strategy`
+            which is required by `&(impl proptest::strategy::Strategy<Value = PathBuf>, impl proptest::strategy::Strategy<Value = Option<PathBuf>>, impl proptest::strategy::Strategy<Value = JobStatus>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = bool>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<bool>>): proptest::strategy::Strategy`
+            `(impl proptest::strategy::Strategy<Value = PathBuf>, impl proptest::strategy::Strategy<Value = Option<PathBuf>>, impl proptest::strategy::Strategy<Value = JobStatus>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = bool>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<bool>>): proptest::strategy::Strategy`
+            which is required by `&mut (impl proptest::strategy::Strategy<Value = PathBuf>, impl proptest::strategy::Strategy<Value = Option<PathBuf>>, impl proptest::strategy::Strategy<Value = JobStatus>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = bool>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u64>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<i32>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<u8>>, impl proptest::strategy::Strategy<Value = Option<String>>, impl proptest::strategy::Strategy<Value = Option<bool>>): proptest::strategy::Strategy`
+
+error[E0507]: cannot move out of `loaded_job.id` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:35:25
+   |
+35 |         prop_assert_eq!(loaded_job.id, job.id, "Job ID should match");
+   |                         ^^^^^^^^^^^^^ move occurs because `loaded_job.id` has type `String`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+35 |         prop_assert_eq!(&loaded_job.id, job.id, "Job ID should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+35 |         prop_assert_eq!(loaded_job.id.clone(), job.id, "Job ID should match");
+   |                                      ++++++++
+
+error[E0507]: cannot move out of `loaded_job.source_path` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:36:25
+   |
+36 |         prop_assert_eq!(loaded_job.source_path, job.source_path, "Source path should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.source_path` has type `PathBuf`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+36 |         prop_assert_eq!(&loaded_job.source_path, job.source_path, "Source path should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+36 |         prop_assert_eq!(loaded_job.source_path.clone(), job.source_path, "Source path should match");
+   |                                               ++++++++
+
+error[E0507]: cannot move out of `loaded_job.output_path` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:37:25
+   |
+37 |         prop_assert_eq!(loaded_job.output_path, job.output_path, "Output path should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.output_path` has type `Option<PathBuf>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+37 |         prop_assert_eq!(&loaded_job.output_path, job.output_path, "Output path should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+37 |         prop_assert_eq!(loaded_job.output_path.clone(), job.output_path, "Output path should match");
+   |                                               ++++++++
+
+error[E0507]: cannot move out of `loaded_job.reason` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:39:25
+   |
+39 |         prop_assert_eq!(loaded_job.reason, job.reason, "Reason should match");
+   |                         ^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.reason` has type `Option<String>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+39 |         prop_assert_eq!(&loaded_job.reason, job.reason, "Reason should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+39 |         prop_assert_eq!(loaded_job.reason.clone(), job.reason, "Reason should match");
+   |                                          ++++++++
+
+error[E0507]: cannot move out of `loaded_job.video_codec` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:43:25
+   |
+43 |         prop_assert_eq!(loaded_job.video_codec, job.video_codec, "Video codec should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.video_codec` has type `Option<String>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+43 |         prop_assert_eq!(&loaded_job.video_codec, job.video_codec, "Video codec should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+43 |         prop_assert_eq!(loaded_job.video_codec.clone(), job.video_codec, "Video codec should match");
+   |                                               ++++++++
+
+error[E0507]: cannot move out of `loaded_job.video_frame_rate` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:47:25
+   |
+47 |         prop_assert_eq!(loaded_job.video_frame_rate, job.video_frame_rate, "Video frame rate should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.video_frame_rate` has type `Option<String>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+47 |         prop_assert_eq!(&loaded_job.video_frame_rate, job.video_frame_rate, "Video frame rate should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+47 |         prop_assert_eq!(loaded_job.video_frame_rate.clone(), job.video_frame_rate, "Video frame rate should match");
+   |                                                    ++++++++
+
+error[E0507]: cannot move out of `loaded_job.encoder_used` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:50:25
+   |
+50 |         prop_assert_eq!(loaded_job.encoder_used, job.encoder_used, "Encoder used should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.encoder_used` has type `Option<String>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+50 |         prop_assert_eq!(&loaded_job.encoder_used, job.encoder_used, "Encoder used should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+50 |         prop_assert_eq!(loaded_job.encoder_used.clone(), job.encoder_used, "Encoder used should match");
+   |                                                ++++++++
+
+error[E0507]: cannot move out of `loaded_job.source_pix_fmt` which is behind a shared reference
+  --> crates/daemon/tests/jobs_properties.rs:52:25
+   |
+52 |         prop_assert_eq!(loaded_job.source_pix_fmt, job.source_pix_fmt, "Source pix fmt should match");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^ move occurs because `loaded_job.source_pix_fmt` has type `Option<String>`, which does not implement the `Copy` trait
+   |
+help: consider borrowing here
+   |
+52 |         prop_assert_eq!(&loaded_job.source_pix_fmt, job.source_pix_fmt, "Source pix fmt should match");
+   |                         +
+help: consider cloning the value if the performance cost is acceptable
+   |
+52 |         prop_assert_eq!(loaded_job.source_pix_fmt.clone(), job.source_pix_fmt, "Source pix fmt should match");
+   |                                                  ++++++++
+
+Some errors have detailed explanations: E0507, E0599.
+For more information about an error, try `rustc --explain E0507`.
+error: could not compile `av1d-daemon` (test "jobs_properties") due to 9 previous errors

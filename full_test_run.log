@@ -1,0 +1,621 @@
+   Compiling av1d-daemon v0.1.0 (/home/dark-rock/av1-janitor/crates/daemon)
+   Compiling av1top v0.1.0 (/home/dark-rock/av1-janitor/crates/cli-tui)
+   Compiling av1d v0.1.0 (/home/dark-rock/av1-janitor/crates/cli-daemon)
+warning: unused import: `save_job`
+ --> crates/cli-tui/src/models/job.rs:2:60
+  |
+2 | pub use av1d_daemon::jobs::{Job, JobStatus, load_all_jobs, save_job};
+  |                                                            ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: variant `Complete` is never constructed
+   --> crates/cli-tui/tests/tui_properties.rs:543:9
+    |
+538 |     enum JobStage {
+    |          -------- variant in this enum
+...
+543 |         Complete,
+    |         ^^^^^^^^
+    |
+    = note: `JobStage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: use of deprecated method `ratatui::Frame::<'_>::size`: use .area() as it's the more correct name
+    --> crates/cli-tui/src/main.rs:1996:18
+     |
+1996 |     let size = f.size();
+     |                  ^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: variants `Replacing` and `Complete` are never constructed
+  --> crates/cli-tui/src/main.rs:28:5
+   |
+24 | enum JobStage {
+   |      -------- variants in this enum
+...
+28 |     Replacing,      // Replacing original file
+   |     ^^^^^^^^^
+29 |     Complete,       // Job finished
+   |     ^^^^^^^^
+   |
+   = note: `JobStage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: field `scroll_offset` is never read
+  --> crates/cli-tui/src/main.rs:75:5
+   |
+72 | struct UiState {
+   |        ------- field in this struct
+...
+75 |     scroll_offset: usize,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `UiState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `recent_completion_rate` is never read
+   --> crates/cli-tui/src/main.rs:116:5
+    |
+105 | struct StatisticsCache {
+    |        --------------- field in this struct
+...
+116 |     recent_completion_rate: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `StatisticsCache` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `skipped` is never read
+   --> crates/cli-tui/src/main.rs:292:5
+    |
+286 | struct ColorScheme {
+    |        ----------- field in this struct
+...
+292 |     skipped: Color,
+    |     ^^^^^^^
+    |
+    = note: `ColorScheme` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `status_color` and `codec_color` are never used
+   --> crates/cli-tui/src/main.rs:344:8
+    |
+342 | impl ColorScheme {
+    | ---------------- methods in this implementation
+343 |     /// Get color for a job status
+344 |     fn status_color(&self, status: &JobStatus) -> Color {
+    |        ^^^^^^^^^^^^
+...
+365 |     fn codec_color(&self, codec: &str) -> Color {
+    |        ^^^^^^^^^^^
+
+warning: fields `show_detail_view`, `table_height`, and `is_very_small` are never read
+   --> crates/cli-tui/src/main.rs:479:5
+    |
+475 | struct LayoutConfig {
+    |        ------------ fields in this struct
+...
+479 |     show_detail_view: bool,
+    |     ^^^^^^^^^^^^^^^^
+...
+485 |     table_height: u16,
+    |     ^^^^^^^^^^^^
+...
+488 |     is_very_small: bool,
+    |     ^^^^^^^^^^^^^
+    |
+    = note: `LayoutConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `temp_file_path` is never read
+   --> crates/cli-tui/src/main.rs:650:5
+    |
+649 | struct JobProgress {
+    |        ----------- field in this struct
+650 |     temp_file_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `JobProgress` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: function `estimate_space_savings_gb` is never used
+   --> crates/cli-tui/src/main.rs:818:4
+    |
+818 | fn estimate_space_savings_gb(job: &Job) -> Option<f64> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `update_message` and `detect_job_progress` are never used
+    --> crates/cli-tui/src/main.rs:1169:8
+     |
+ 877 | impl App {
+     | -------- methods in this implementation
+...
+1169 |     fn update_message(&mut self) {
+     |        ^^^^^^^^^^^^^^
+...
+1338 |     fn detect_job_progress(&mut self, job: &Job) {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: method `command_dir` is never used
+   --> crates/cli-tui/src/models/config.rs:143:12
+    |
+117 | impl TranscodeConfig {
+    | -------------------- method in this implementation
+...
+143 |     pub fn command_dir(&self) -> PathBuf {
+    |            ^^^^^^^^^^^
+
+warning: method `codec_color` is never used
+   --> crates/cli-tui/src/main.rs:365:8
+    |
+342 | impl ColorScheme {
+    | ---------------- method in this implementation
+...
+365 |     fn codec_color(&self, codec: &str) -> Color {
+    |        ^^^^^^^^^^^
+
+warning: `av1top` (test "tui_properties") generated 1 warning
+warning: `av1top` (bin "av1top") generated 12 warnings (run `cargo fix --bin "av1top"` to apply 1 suggestion)
+warning: `av1top` (bin "av1top" test) generated 11 warnings (10 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.26s
+     Running unittests src/main.rs (target/debug/deps/av1d-5c2bc395d3a311f7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/av1d_daemon-7be87ebb5759c560)
+
+running 18 tests
+test config::tests::test_no_config_path_uses_defaults ... ok
+test config::tests::test_missing_config_file_uses_defaults ... ok
+test config::tests::test_encoder_preference_serialization ... ok
+test config::tests::test_validation_invalid_max_size_ratio_above_one ... ok
+test config::tests::test_validation_empty_library_roots ... ok
+test config::tests::test_invalid_toml_syntax ... ok
+test config::tests::test_validation_invalid_max_size_ratio_zero ... ok
+test config::tests::test_quality_tier_serialization ... ok
+test config::tests::test_validation_zero_concurrent_jobs ... ok
+test startup::tests::test_encoder_selection_specific_cases ... ok
+test startup::tests::test_encoder_to_selected ... ok
+test config::tests::test_partial_config_with_defaults ... ok
+test encode::tests::test_executor_creation ... ok
+test startup::tests::test_encoder_selection_hierarchy ... ok
+test startup::tests::test_version_rejection ... ok
+test config::tests::prop_config_round_trip ... ok
+test encode::tests::test_executor_slot_management ... ok
+test startup::tests::test_ffmpeg_version_parsing ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/classify_properties.rs (target/debug/deps/classify_properties-4b4b7bf39d038d47)
+
+running 11 tests
+test test_1080p_bitrate_thresholds ... ok
+test test_2160p_bitrate_thresholds ... ok
+test test_combined_disclike_scoring ... ok
+test test_combined_weblike_scoring ... ok
+test test_large_file_size_scoring ... ok
+test test_disclike_keyword_case_insensitivity ... ok
+test test_neutral_classification ... ok
+test test_no_video_streams ... ok
+test test_vp9_codec_scoring ... ok
+test test_weblike_keyword_case_insensitivity ... ok
+test property_source_classification_scoring ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/concurrent_limiting_test.rs (target/debug/deps/concurrent_limiting_test-25344f022dd95c10)
+
+running 1 test
+test test_concurrent_job_limiting ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/encode_properties.rs (target/debug/deps/encode_properties-cde98393e1e43fc4)
+
+running 9 tests
+test prop_pad_filter_application ... ok
+test prop_weblike_flag_inclusion ... ok
+test prop_svt_preset_selection ... ok
+test prop_crf_selection_by_resolution ... ok
+test prop_stream_mapping_command_construction ... ok
+test prop_audio_and_subtitle_stream_copying ... ok
+test prop_svt_av1_command_parameters ... ok
+test prop_libaom_av1_command_parameters ... ok
+test prop_concurrent_job_limiting ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/gates_properties.rs (target/debug/deps/gates_properties-a363717bc2ca9405)
+
+running 9 tests
+test test_gate_evaluation_order ... ok
+test test_no_video_streams ... ok
+test test_multiple_video_streams ... ok
+test test_size_just_above_threshold ... ok
+test test_size_threshold_boundary ... ok
+test test_valid_file_passes_gates ... ok
+test test_skip_marker_gate ... ok
+test property_size_threshold_enforcement ... ok
+test property_av1_codec_detection_and_skip ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/jobs_properties.rs (target/debug/deps/jobs_properties-c57c85da9865b283)
+
+running 12 tests
+test test_compilation ... ok
+test test_load_from_nonexistent_directory ... ok
+test test_save_creates_directory ... ok
+test test_job_update_persistence ... ok
+test test_load_skips_temporary_files ... ok
+test test_load_skips_invalid_json ... ok
+test test_multiple_jobs_persistence ... ok
+test test_status_update_persistence ... ok
+test test_valid_status_transitions ... ok
+test test_timestamp_ordering ... ok
+test property_job_status_transitions ... ok
+test property_job_persistence ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/probe_properties.rs (target/debug/deps/probe_properties-1239f92d6427648e)
+
+running 7 tests
+test test_default_preference ... ok
+test test_empty_stream_list ... ok
+test test_first_stream_fallback ... ok
+test test_various_codecs ... ok
+test test_single_stream ... ok
+test property_main_video_stream_selection ... ok
+test property_ffprobe_json_parsing ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/probe_unit_tests.rs (target/debug/deps/probe_unit_tests-9a4f8dc23a738cb0)
+
+running 5 tests
+test test_empty_stream_list ... ok
+test test_default_preference ... ok
+test test_first_stream_fallback ... ok
+test test_single_stream ... ok
+test test_various_codecs ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/replace_properties.rs (target/debug/deps/replace_properties-f47d9a78d20b1c7f)
+
+running 9 tests
+test test_original_file_missing ... ok
+test test_new_file_missing ... ok
+test test_keep_original_true ... ok
+test test_special_characters_in_filename ... ok
+test test_keep_original_false ... ok
+test test_nested_directory_replacement ... ok
+test test_large_file_replacement ... ok
+test property_atomic_file_replacement ... ok
+test test_multiple_replacements ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+
+     Running tests/scan_properties.rs (target/debug/deps/scan_properties-f77285299635bed1)
+
+running 10 tests
+test test_empty_directory ... ok
+test test_skip_marker_creation ... ok
+test test_inaccessible_directory_handling ... FAILED
+test test_skip_marker_in_subdirectories ... FAILED
+test test_deeply_nested_directories ... FAILED
+test test_skip_marker_various_extensions ... ok
+test property_skip_marker_enforcement ... FAILED
+test property_recursive_file_discovery ... FAILED
+test property_non_video_file_rejection ... ok
+test property_video_file_extension_detection ... ok
+
+failures:
+
+---- test_inaccessible_directory_handling stdout ----
+[SCAN DEBUG] Scanning library root: /tmp/.tmpkVifBv
+[SCAN DEBUG] Directory "/tmp/.tmpkVifBv": include=false
+[SCAN DEBUG] Scanning library root: /tmp/.tmpkVifBv/does_not_exist
+[SCAN DEBUG] Library root does not exist: /tmp/.tmpkVifBv/does_not_exist
+[SCAN DEBUG] Found 0 candidate video files
+
+thread 'test_inaccessible_directory_handling' panicked at crates/daemon/tests/scan_properties.rs:146:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- test_skip_marker_in_subdirectories stdout ----
+[SCAN DEBUG] Scanning library root: /tmp/.tmpAFvXal
+[SCAN DEBUG] Directory "/tmp/.tmpAFvXal": include=false
+[SCAN DEBUG] Found 0 candidate video files
+
+thread 'test_skip_marker_in_subdirectories' panicked at crates/daemon/tests/scan_properties.rs:312:5:
+assertion `left == right` failed
+  left: 0
+ right: 1
+
+---- test_deeply_nested_directories stdout ----
+Test root: "/tmp/.tmp5B10be"
+Created video file: "/tmp/.tmp5B10be/a/b/c/d/video.mkv"
+[SCAN DEBUG] Scanning library root: /tmp/.tmp5B10be
+[SCAN DEBUG] Directory "/tmp/.tmp5B10be": include=false
+[SCAN DEBUG] Found 0 candidate video files
+Scan results: 0 files found
+
+thread 'test_deeply_nested_directories' panicked at crates/daemon/tests/scan_properties.rs:191:5:
+assertion `left == right` failed: Should find exactly 1 video file, found 0
+  left: 0
+ right: 1
+
+---- property_skip_marker_enforcement stdout ----
+proptest: FileFailurePersistence::SourceParallel set, but failed to find lib.rs or main.rs
+[SCAN DEBUG] Scanning library root: /tmp/.tmpwvkueo
+[SCAN DEBUG] Directory "/tmp/.tmpwvkueo": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpPBKIb1
+[SCAN DEBUG] Directory "/tmp/.tmpPBKIb1": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpfH0req
+[SCAN DEBUG] Directory "/tmp/.tmpfH0req": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpEJisXW
+[SCAN DEBUG] Directory "/tmp/.tmpEJisXW": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpSJ69qI
+[SCAN DEBUG] Directory "/tmp/.tmpSJ69qI": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpceKkle
+[SCAN DEBUG] Directory "/tmp/.tmpceKkle": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmphAj5w1
+[SCAN DEBUG] Directory "/tmp/.tmphAj5w1": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpkANwsV
+[SCAN DEBUG] Directory "/tmp/.tmpkANwsV": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp6JJgtz
+[SCAN DEBUG] Directory "/tmp/.tmp6JJgtz": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpbF18r5
+[SCAN DEBUG] Directory "/tmp/.tmpbF18r5": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmppGQzlS
+[SCAN DEBUG] Directory "/tmp/.tmppGQzlS": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpy2kFIr
+[SCAN DEBUG] Directory "/tmp/.tmpy2kFIr": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp6Zl5w1
+[SCAN DEBUG] Directory "/tmp/.tmp6Zl5w1": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpuGrs9D
+[SCAN DEBUG] Directory "/tmp/.tmpuGrs9D": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpS2cAM8
+[SCAN DEBUG] Directory "/tmp/.tmpS2cAM8": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpQXe5gI
+[SCAN DEBUG] Directory "/tmp/.tmpQXe5gI": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpERHRwz
+[SCAN DEBUG] Directory "/tmp/.tmpERHRwz": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpCgZ8Wc
+[SCAN DEBUG] Directory "/tmp/.tmpCgZ8Wc": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpfIxlAU
+[SCAN DEBUG] Directory "/tmp/.tmpfIxlAU": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp1A8Nlk
+[SCAN DEBUG] Directory "/tmp/.tmp1A8Nlk": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpCWRJT2
+[SCAN DEBUG] Directory "/tmp/.tmpCWRJT2": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpygrs2u
+[SCAN DEBUG] Directory "/tmp/.tmpygrs2u": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp014VmU
+[SCAN DEBUG] Directory "/tmp/.tmp014VmU": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmptTAMI3
+[SCAN DEBUG] Directory "/tmp/.tmptTAMI3": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp7z0yGs
+[SCAN DEBUG] Directory "/tmp/.tmp7z0yGs": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpaPhah2
+[SCAN DEBUG] Directory "/tmp/.tmpaPhah2": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpqd6xrv
+[SCAN DEBUG] Directory "/tmp/.tmpqd6xrv": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpV0Yht3
+[SCAN DEBUG] Directory "/tmp/.tmpV0Yht3": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpyXZgeT
+[SCAN DEBUG] Directory "/tmp/.tmpyXZgeT": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp5wPJCu
+[SCAN DEBUG] Directory "/tmp/.tmp5wPJCu": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpieJDMX
+[SCAN DEBUG] Directory "/tmp/.tmpieJDMX": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp1T7r8U
+[SCAN DEBUG] Directory "/tmp/.tmp1T7r8U": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp6foL3A
+[SCAN DEBUG] Directory "/tmp/.tmp6foL3A": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpLce7GD
+[SCAN DEBUG] Directory "/tmp/.tmpLce7GD": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpXxYQKG
+[SCAN DEBUG] Directory "/tmp/.tmpXxYQKG": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpJaapxL
+[SCAN DEBUG] Directory "/tmp/.tmpJaapxL": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp6S3GYi
+[SCAN DEBUG] Directory "/tmp/.tmp6S3GYi": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpDfsW0I
+[SCAN DEBUG] Directory "/tmp/.tmpDfsW0I": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp1EbqCQ
+[SCAN DEBUG] Directory "/tmp/.tmp1EbqCQ": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp5eJbPw
+[SCAN DEBUG] Directory "/tmp/.tmp5eJbPw": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpcN9cZo
+[SCAN DEBUG] Directory "/tmp/.tmpcN9cZo": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpFiLMca
+[SCAN DEBUG] Directory "/tmp/.tmpFiLMca": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpw5X3PJ
+[SCAN DEBUG] Directory "/tmp/.tmpw5X3PJ": include=false
+[SCAN DEBUG] Found 0 candidate video files
+
+thread 'property_skip_marker_enforcement' panicked at crates/daemon/tests/scan_properties.rs:200:5:
+Test failed: assertion failed: `(left == right)` 
+  left: `0`, 
+ right: `1`: Should only find 1 files without markers, found 0 at crates/daemon/tests/scan_properties.rs:226.
+minimal failing input: video_files_with_markers = [
+    "A_a.mkv",
+], video_files_without_markers = [
+    "a_-.mkv",
+]
+	successes: 0
+	local rejects: 0
+	global rejects: 0
+
+
+---- property_recursive_file_discovery stdout ----
+proptest: FileFailurePersistence::SourceParallel set, but failed to find lib.rs or main.rs
+[SCAN DEBUG] Scanning library root: /tmp/.tmp7JWYYq
+[SCAN DEBUG] Directory "/tmp/.tmp7JWYYq": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpnCodhV
+[SCAN DEBUG] Directory "/tmp/.tmpnCodhV": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmps6wXI6
+[SCAN DEBUG] Directory "/tmp/.tmps6wXI6": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpGV8hKN
+[SCAN DEBUG] Directory "/tmp/.tmpGV8hKN": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpmqHTmP
+[SCAN DEBUG] Directory "/tmp/.tmpmqHTmP": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpNOtNPt
+[SCAN DEBUG] Directory "/tmp/.tmpNOtNPt": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpfCDw9B
+[SCAN DEBUG] Directory "/tmp/.tmpfCDw9B": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpZGgAt9
+[SCAN DEBUG] Directory "/tmp/.tmpZGgAt9": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpUflDhC
+[SCAN DEBUG] Directory "/tmp/.tmpUflDhC": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpQwcTc7
+[SCAN DEBUG] Directory "/tmp/.tmpQwcTc7": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmptm3ghs
+[SCAN DEBUG] Directory "/tmp/.tmptm3ghs": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpOswHhv
+[SCAN DEBUG] Directory "/tmp/.tmpOswHhv": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpyJxqrV
+[SCAN DEBUG] Directory "/tmp/.tmpyJxqrV": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmp7J0xcP
+[SCAN DEBUG] Directory "/tmp/.tmp7J0xcP": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpgx4Nwx
+[SCAN DEBUG] Directory "/tmp/.tmpgx4Nwx": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpk6U3hP
+[SCAN DEBUG] Directory "/tmp/.tmpk6U3hP": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpA4elWQ
+[SCAN DEBUG] Directory "/tmp/.tmpA4elWQ": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpibIWVg
+[SCAN DEBUG] Directory "/tmp/.tmpibIWVg": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpGwM2Js
+[SCAN DEBUG] Directory "/tmp/.tmpGwM2Js": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpLDUk00
+[SCAN DEBUG] Directory "/tmp/.tmpLDUk00": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpMvumdi
+[SCAN DEBUG] Directory "/tmp/.tmpMvumdi": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpuOKwHP
+[SCAN DEBUG] Directory "/tmp/.tmpuOKwHP": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpylqBNu
+[SCAN DEBUG] Directory "/tmp/.tmpylqBNu": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpBRM10r
+[SCAN DEBUG] Directory "/tmp/.tmpBRM10r": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpQeTqH0
+[SCAN DEBUG] Directory "/tmp/.tmpQeTqH0": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpLxkeCZ
+[SCAN DEBUG] Directory "/tmp/.tmpLxkeCZ": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpdj32Ze
+[SCAN DEBUG] Directory "/tmp/.tmpdj32Ze": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpAU8unI
+[SCAN DEBUG] Directory "/tmp/.tmpAU8unI": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpxJ60Ii
+[SCAN DEBUG] Directory "/tmp/.tmpxJ60Ii": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpoS7cf2
+[SCAN DEBUG] Directory "/tmp/.tmpoS7cf2": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpqANsdO
+[SCAN DEBUG] Directory "/tmp/.tmpqANsdO": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpuPHgPC
+[SCAN DEBUG] Directory "/tmp/.tmpuPHgPC": include=false
+[SCAN DEBUG] Found 0 candidate video files
+[SCAN DEBUG] Scanning library root: /tmp/.tmpNg6uML
+[SCAN DEBUG] Directory "/tmp/.tmpNg6uML": include=false
+[SCAN DEBUG] Found 0 candidate video files
+
+thread 'property_recursive_file_discovery' panicked at crates/daemon/tests/scan_properties.rs:12:5:
+Test failed: assertion failed: `(left == right)` 
+  left: `0`, 
+ right: `1`: Should find exactly 1 video files, found 0 at crates/daemon/tests/scan_properties.rs:55.
+minimal failing input: video_files = [
+    "_-A.mkv",
+], non_video_files = [], subdirs = []
+	successes: 0
+	local rejects: 0
+	global rejects: 0
+
+
+
+failures:
+    property_recursive_file_discovery
+    property_skip_marker_enforcement
+    test_deeply_nested_directories
+    test_inaccessible_directory_handling
+    test_skip_marker_in_subdirectories
+
+test result: FAILED. 5 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p av1d-daemon --test scan_properties`

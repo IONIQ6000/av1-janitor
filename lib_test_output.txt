@@ -1,0 +1,25 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s
+     Running unittests src/lib.rs (target/debug/deps/av1d_daemon-ca507974b18867cc)
+
+running 18 tests
+test config::tests::test_no_config_path_uses_defaults ... ok
+test config::tests::test_missing_config_file_uses_defaults ... ok
+test config::tests::test_encoder_preference_serialization ... ok
+test config::tests::test_validation_empty_library_roots ... ok
+test config::tests::test_quality_tier_serialization ... ok
+test config::tests::test_validation_invalid_max_size_ratio_above_one ... ok
+test config::tests::test_invalid_toml_syntax ... ok
+test config::tests::test_validation_invalid_max_size_ratio_zero ... ok
+test config::tests::test_validation_zero_concurrent_jobs ... ok
+test config::tests::test_partial_config_with_defaults ... ok
+test startup::tests::test_encoder_selection_specific_cases ... ok
+test startup::tests::test_encoder_to_selected ... ok
+test encode::tests::test_executor_creation ... ok
+test startup::tests::test_encoder_selection_hierarchy ... ok
+test startup::tests::test_version_rejection ... ok
+test config::tests::prop_config_round_trip ... ok
+test encode::tests::test_executor_slot_management ... ok
+test startup::tests::test_ffmpeg_version_parsing ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+

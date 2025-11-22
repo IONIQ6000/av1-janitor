@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  av1d:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: av1-reencoder:latest
+    container_name: av1d
+    restart: unless-stopped
+    
+    # Volume mounts
+    volumes:
+      # Mount your media library (adjust path as needed)
+      - /path/to/your/media:/media
+      
+      # Mount configuration file
+      - ./config.toml:/etc/av1d/config.toml:ro
+      
+      # Persistent state for job tracking
+      - av1d-state:/var/lib/av1d
+    
+    # Environment variables
+    environment:
+      # Rust logging level (error, warn, info, debug, trace)
+      - RUST_LOG=info
+    
+    # Resource limits (adjust based on your hardware)
+    deploy:
+      resources:
+        limits:
+          # Limit memory usage (adjust based on max_concurrent_jobs)
+          # Rule of thumb: 4GB per concurrent 4K job
+          memory: 16G
+        reservations:
+          memory: 4G
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only root filesystem (except mounted volumes)
+    read_only: false
+    
+    # Tmpfs for temporary files (optional, for better performance)
+    tmpfs:
+      - /tmp:size=2G,mode=1777
+
+# Named volumes for persistent data
+volumes:
+  av1d-state:
+    driver: local

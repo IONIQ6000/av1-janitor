@@ -1,0 +1,33 @@
+# Ignore build artifacts
+target/
+*.tar.gz
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore test outputs
+*_tests.txt
+*_output.txt
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore packaging files (they're copied separately)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Ignore spec files
+.kiro/
+
+# Ignore TUI package
+tui-package/
+tui-package.tar.gz

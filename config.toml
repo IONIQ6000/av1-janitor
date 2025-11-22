@@ -1,0 +1,110 @@
+# AV1 Re-encoding Daemon Configuration
+# This file configures the behavior of the av1d daemon for quality-first AV1 encoding
+
+# ============================================================================
+# LIBRARY SCANNING
+# ============================================================================
+
+# Directories to scan for video files (recursive)
+# The daemon will discover all video files in these directories and subdirectories
+library_roots = ["/media"]
+
+# Minimum file size in bytes to consider for encoding
+# Files smaller than this will be skipped to avoid degrading low-bitrate content
+# Default: 2 GiB (2147483648 bytes)
+min_bytes = 2147483648
+
+# How often to scan library directories (in seconds)
+# Default: 60 seconds (1 minute)
+scan_interval_secs = 60
+
+# ============================================================================
+# ENCODING QUALITY
+# ============================================================================
+
+# Preferred encoder (if available)
+# Options: "svt" (SVT-AV1), "aom" (libaom-av1), "rav1e" (librav1e)
+# The daemon will fall back to the next available encoder if preferred is not found
+# Default: "svt" (best balance of quality and speed)
+prefer_encoder = "svt"
+
+# Quality tier for encoding
+# Options: "high", "very_high"
+# "very_high" uses slower presets for maximum quality (decreases preset by 1)
+# Default: "high" (good quality with reasonable encoding time)
+quality_tier = "high"
+
+# ============================================================================
+# OUTPUT VALIDATION
+# ============================================================================
+
+# Maximum size ratio for encoded output
+# If output size >= (original size * max_size_ratio), the encode is rejected
+# This prevents wasting disk space on ineffective encodes
+# Default: 0.90 (reject if output is 90% or more of original size)
+max_size_ratio = 0.90
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+
+# Maximum number of concurrent encoding jobs
+# For quality-first encoding on 32-core EPYC, start with 1
+# Increase to 2-3 if CPU utilization is low and quality is acceptable
+# Each 4K encode can use 2-4 GB of RAM
+# Default: 1 (maximum quality, full core utilization per job)
+max_concurrent_jobs = 1
+
+# ============================================================================
+# FILE MANAGEMENT
+# ============================================================================
+
+# Directory to store job state JSON files
+# The TUI reads from this directory to display job status
+job_state_dir = "/var/lib/av1d/jobs"
+
+# Directory for temporary output files during encoding
+# Place on fast NVMe storage for best performance
+# Ensure sufficient space (2x largest video file)
+temp_output_dir = "/var/lib/av1d/temp"
+
+# Keep original files after successful encoding
+# If true, original files are renamed to .orig
+# If false, original files are deleted after successful replacement
+# Default: false (save disk space)
+keep_original = false
+
+# Write .why.txt sidecar files explaining why files were skipped
+# Useful for debugging and understanding daemon decisions
+# Default: true
+write_why_sidecars = true
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# CRF (Constant Rate Factor) values are automatically selected based on resolution:
+#   - 2160p (4K) and above: CRF 21
+#   - 1440p (2K):           CRF 22
+#   - 1080p (FHD):          CRF 23
+#   - Below 1080p:          CRF 24
+#   - Low bitrate sources:  CRF +1 within range
+#
+# SVT-AV1 presets are automatically selected based on resolution:
+#   - 2160p and above: Preset 3
+#   - 1440p:           Preset 4
+#   - 1080p:           Preset 4
+#   - Below 1080p:     Preset 5
+#   - Very high quality tier: Preset -1
+#
+# The daemon automatically:
+#   - Skips files already encoded in AV1
+#   - Skips files with .av1skip marker
+#   - Detects and handles WebRip sources with special flags
+#   - Preserves all audio/subtitle streams (except Russian)
+#   - Validates output before replacing original
+#   - Creates atomic file replacements to prevent data loss
+#
+# Monitor encoding with: av1top --job-state-dir /var/lib/av1d/jobs
+# View daemon logs with: journalctl -u av1d -f
+#

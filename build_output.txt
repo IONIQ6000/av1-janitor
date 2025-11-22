@@ -1,0 +1,217 @@
+warning: unused import: `Context`
+ --> crates/daemon/src/scan.rs:1:14
+  |
+1 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `job`
+  --> crates/daemon/src/encode/mod.rs:21:29
+   |
+21 | ...ute_encode(job: &mut Job, command...
+   |               ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `command`
+  --> crates/daemon/src/encode/mod.rs:21:44
+   |
+21 | ... &mut Job, command: Vec<String>) ...
+   |               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_command`
+
+warning: unused variable: `output_path`
+  --> crates/daemon/src/validate.rs:20:5
+   |
+20 |     output_path: &Path,
+   |     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_output_path`
+
+warning: unused variable: `original_probe`
+  --> crates/daemon/src/validate.rs:21:5
+   |
+21 |     original_probe: &ProbeResult,
+   |     ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original_probe`
+
+warning: unused variable: `original`
+ --> crates/daemon/src/replace.rs:5:5
+  |
+5 |     original: &Path,
+  |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original`
+
+warning: unused variable: `new`
+ --> crates/daemon/src/replace.rs:6:5
+  |
+6 |     new: &Path,
+  |     ^^^ help: if this is intentional, prefix it with an underscore: `_new`
+
+warning: unused variable: `keep_original`
+ --> crates/daemon/src/replace.rs:7:5
+  |
+7 |     keep_original: bool,
+  |     ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_keep_original`
+
+warning: unused variable: `file`
+  --> crates/daemon/src/gates.rs:20:5
+   |
+20 |     file: &CandidateFile,
+   |     ^^^^ help: if this is intentional, prefix it with an underscore: `_file`
+
+warning: unused variable: `probe`
+  --> crates/daemon/src/gates.rs:21:5
+   |
+21 |     probe: &ProbeResult,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_probe`
+
+warning: unused variable: `config`
+  --> crates/daemon/src/gates.rs:22:5
+   |
+22 |     config: &DaemonConfig,
+   |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `job`
+ --> crates/daemon/src/encode/svt.rs:5:26
+  |
+5 | ..._svt_command(job: &Job, crf: u8, p...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `crf`
+ --> crates/daemon/src/encode/svt.rs:5:37
+  |
+5 | ...d(job: &Job, crf: u8, preset: u8) ...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_crf`
+
+warning: unused variable: `preset`
+ --> crates/daemon/src/encode/svt.rs:5:46
+  |
+5 | ..., crf: u8, preset: u8) -> Vec<Stri...
+  |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_preset`
+
+warning: unused variable: `job`
+ --> crates/daemon/src/encode/aom.rs:5:26
+  |
+5 | ..._aom_command(job: &Job, crf: u8) -...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `crf`
+ --> crates/daemon/src/encode/aom.rs:5:37
+  |
+5 | ...d(job: &Job, crf: u8) -> Vec<Strin...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_crf`
+
+warning: unused variable: `job`
+ --> crates/daemon/src/encode/rav1e.rs:5:28
+  |
+5 | ...av1e_command(job: &Job, crf: u8) -...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `crf`
+ --> crates/daemon/src/encode/rav1e.rs:5:39
+  |
+5 | ...d(job: &Job, crf: u8) -> Vec<Strin...
+  |                 ^^^ help: if this is intentional, prefix it with an underscore: `_crf`
+
+warning: unused variable: `width`
+  --> crates/daemon/src/encode/common.rs:13:19
+   |
+13 | ...pad_filter(width: i32, height: i3...
+   |               ^^^^^ help: if this is intentional, prefix it with an underscore: `_width`
+
+warning: unused variable: `height`
+  --> crates/daemon/src/encode/common.rs:13:31
+   |
+13 | ...idth: i32, height: i32) -> Option...
+   |               ^^^^^^ help: if this is intentional, prefix it with an underscore: `_height`
+
+warning: unused variable: `job`
+  --> crates/daemon/src/encode/mod.rs:13:5
+   |
+13 |     job: &Job,
+   |     ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `encoder`
+  --> crates/daemon/src/encode/mod.rs:14:5
+   |
+14 |     encoder: &SelectedEncoder,
+   |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_encoder`
+
+warning: unused variable: `config`
+  --> crates/daemon/src/encode/mod.rs:15:5
+   |
+15 |     config: &DaemonConfig,
+   |     ^^^^^^ help: if this is intentional, prefix it with an underscore: `_config`
+
+warning: unused variable: `probe`
+  --> crates/daemon/src/jobs.rs:63:5
+   |
+63 |     probe: ProbeResult,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_probe`
+
+warning: unused variable: `job`
+  --> crates/daemon/src/jobs.rs:92:17
+   |
+92 | ...n save_job(job: &Job, state_dir: ...
+   |               ^^^ help: if this is intentional, prefix it with an underscore: `_job`
+
+warning: unused variable: `state_dir`
+  --> crates/daemon/src/jobs.rs:92:28
+   |
+92 | ...b: &Job, state_dir: &Path) -> Res...
+   |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_state_dir`
+
+warning: unused variable: `state_dir`
+  --> crates/daemon/src/jobs.rs:97:22
+   |
+97 | ...all_jobs(state_dir: &Path) -> Res...
+   |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_state_dir`
+
+warning: `av1d-daemon` (lib) generated 27 warnings (run `cargo fix --lib -p av1d-daemon` to apply 1 suggestion)
+warning: `av1d-daemon` (lib test) generated 27 warnings (27 duplicates)
+   Compiling av1d-daemon v0.1.0 (/home/dark-rock/av1-janitor/crates/daemon)
+error[E0507]: cannot move out of `stream.codec_name` which is behind a shared reference
+   --> crates/daemon/tests/probe_properties.rs:127:29
+    |
+127 |             prop_assert_eq!(stream.codec_name, video_codec, "Video codec should match");
+    |                             ^^^^^^^^^^^^^^^^^ move occurs because `stream.codec_name` has type `std::string::String`, which does not implement the `Copy` trait
+    |
+help: consider borrowing here
+    |
+127 |             prop_assert_eq!(&stream.codec_name, video_codec, "Video codec should match");
+    |                             +
+help: consider cloning the value if the performance cost is acceptable
+    |
+127 |             prop_assert_eq!(stream.codec_name.clone(), video_codec, "Video codec should match");
+    |                                              ++++++++
+
+error[E0507]: cannot move out of `stream.frame_rate` which is behind a shared reference
+   --> crates/daemon/tests/probe_properties.rs:131:29
+    |
+131 |             prop_assert_eq!(stream.frame_rate, frame_rate.map(|s| s.to_string()), "Frame rate should match");
+    |                             ^^^^^^^^^^^^^^^^^ move occurs because `stream.frame_rate` has type `Option<std::string::String>`, which does not implement the `Copy` trait
+    |
+help: consider borrowing here
+    |
+131 |             prop_assert_eq!(&stream.frame_rate, frame_rate.map(|s| s.to_string()), "Frame rate should match");
+    |                             +
+help: consider cloning the value if the performance cost is acceptable
+    |
+131 |             prop_assert_eq!(stream.frame_rate.clone(), frame_rate.map(|s| s.to_string()), "Frame rate should match");
+    |                                              ++++++++
+
+error[E0507]: cannot move out of `stream.pix_fmt` which is behind a shared reference
+   --> crates/daemon/tests/probe_properties.rs:132:29
+    |
+132 |             prop_assert_eq!(stream.pix_fmt, pix_fmt.map(|s| s.to_string()), "Pixel format should match");
+    |                             ^^^^^^^^^^^^^^ move occurs because `stream.pix_fmt` has type `Option<std::string::String>`, which does not implement the `Copy` trait
+    |
+help: consider borrowing here
+    |
+132 |             prop_assert_eq!(&stream.pix_fmt, pix_fmt.map(|s| s.to_string()), "Pixel format should match");
+    |                             +
+help: consider cloning the value if the performance cost is acceptable
+    |
+132 |             prop_assert_eq!(stream.pix_fmt.clone(), pix_fmt.map(|s| s.to_string()), "Pixel format should match");
+    |                                           ++++++++
+
+For more information about this error, try `rustc --explain E0507`.
+error: could not compile `av1d-daemon` (test "probe_properties") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

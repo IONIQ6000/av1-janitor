@@ -1,0 +1,16 @@
+[package]
+name = "av1d"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "av1d"
+path = "src/main.rs"
+
+[dependencies]
+av1d-daemon = { path = "../daemon" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }

@@ -1,0 +1,195 @@
+   Compiling av1d-daemon v0.1.0 (/home/dark-rock/av1-janitor/crates/daemon)
+warning: unused import: `save_job`
+ --> crates/cli-tui/src/models/job.rs:2:60
+  |
+2 | pub use av1d_daemon::jobs::{Job, JobStatus, load_all_jobs, save_job};
+  |                                                            ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: use of deprecated method `ratatui::Frame::<'_>::size`: use .area() as it's the more correct name
+    --> crates/cli-tui/src/main.rs:1996:18
+     |
+1996 |     let size = f.size();
+     |                  ^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: variants `Replacing` and `Complete` are never constructed
+  --> crates/cli-tui/src/main.rs:28:5
+   |
+24 | enum JobStage {
+   |      -------- variants in this enum
+...
+28 |     Replacing,      // Replacing original file
+   |     ^^^^^^^^^
+29 |     Complete,       // Job finished
+   |     ^^^^^^^^
+   |
+   = note: `JobStage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: field `scroll_offset` is never read
+  --> crates/cli-tui/src/main.rs:75:5
+   |
+72 | struct UiState {
+   |        ------- field in this struct
+...
+75 |     scroll_offset: usize,
+   |     ^^^^^^^^^^^^^
+   |
+   = note: `UiState` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `recent_completion_rate` is never read
+   --> crates/cli-tui/src/main.rs:116:5
+    |
+105 | struct StatisticsCache {
+    |        --------------- field in this struct
+...
+116 |     recent_completion_rate: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `StatisticsCache` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `skipped` is never read
+   --> crates/cli-tui/src/main.rs:292:5
+    |
+286 | struct ColorScheme {
+    |        ----------- field in this struct
+...
+292 |     skipped: Color,
+    |     ^^^^^^^
+    |
+    = note: `ColorScheme` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `status_color` and `codec_color` are never used
+   --> crates/cli-tui/src/main.rs:344:8
+    |
+342 | impl ColorScheme {
+    | ---------------- methods in this implementation
+343 |     /// Get color for a job status
+344 |     fn status_color(&self, status: &JobStatus) -> Color {
+    |        ^^^^^^^^^^^^
+...
+365 |     fn codec_color(&self, codec: &str) -> Color {
+    |        ^^^^^^^^^^^
+
+warning: fields `show_detail_view`, `table_height`, and `is_very_small` are never read
+   --> crates/cli-tui/src/main.rs:479:5
+    |
+475 | struct LayoutConfig {
+    |        ------------ fields in this struct
+...
+479 |     show_detail_view: bool,
+    |     ^^^^^^^^^^^^^^^^
+...
+485 |     table_height: u16,
+    |     ^^^^^^^^^^^^
+...
+488 |     is_very_small: bool,
+    |     ^^^^^^^^^^^^^
+    |
+    = note: `LayoutConfig` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `temp_file_path` is never read
+   --> crates/cli-tui/src/main.rs:650:5
+    |
+649 | struct JobProgress {
+    |        ----------- field in this struct
+650 |     temp_file_path: PathBuf,
+    |     ^^^^^^^^^^^^^^
+    |
+    = note: `JobProgress` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: function `estimate_space_savings_gb` is never used
+   --> crates/cli-tui/src/main.rs:818:4
+    |
+818 | fn estimate_space_savings_gb(job: &Job) -> Option<f64> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `update_message` and `detect_job_progress` are never used
+    --> crates/cli-tui/src/main.rs:1169:8
+     |
+ 877 | impl App {
+     | -------- methods in this implementation
+...
+1169 |     fn update_message(&mut self) {
+     |        ^^^^^^^^^^^^^^
+...
+1338 |     fn detect_job_progress(&mut self, job: &Job) {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+warning: method `command_dir` is never used
+   --> crates/cli-tui/src/models/config.rs:143:12
+    |
+117 | impl TranscodeConfig {
+    | -------------------- method in this implementation
+...
+143 |     pub fn command_dir(&self) -> PathBuf {
+    |            ^^^^^^^^^^^
+
+warning: variant `Complete` is never constructed
+   --> crates/cli-tui/tests/tui_properties.rs:543:9
+    |
+538 |     enum JobStage {
+    |          -------- variant in this enum
+...
+543 |         Complete,
+    |         ^^^^^^^^
+    |
+    = note: `JobStage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: method `codec_color` is never used
+   --> crates/cli-tui/src/main.rs:365:8
+    |
+342 | impl ColorScheme {
+    | ---------------- method in this implementation
+...
+365 |     fn codec_color(&self, codec: &str) -> Color {
+    |        ^^^^^^^^^^^
+
+warning: `av1top` (bin "av1top") generated 12 warnings (run `cargo fix --bin "av1top"` to apply 1 suggestion)
+warning: `av1top` (test "tui_properties") generated 1 warning
+warning: `av1top` (bin "av1top" test) generated 11 warnings (10 duplicates)
+error[E0062]: field `prefer_encoder` specified more than once
+  --> crates/daemon/tests/gates_properties.rs:67:13
+   |
+65 |             prefer_encoder: EncoderPreference::Svt,
+   |             -------------------------------------- first use of `prefer_encoder`
+66 |             quality_tier: QualityTier::High,
+67 |             prefer_encoder: av1d_daemon::config::EncoderPreference::Svt,
+   |             ^^^^^^^^^^^^^^ used more than once
+
+error[E0062]: field `quality_tier` specified more than once
+  --> crates/daemon/tests/gates_properties.rs:68:13
+   |
+66 |             quality_tier: QualityTier::High,
+   |             ------------------------------- first use of `quality_tier`
+67 |             prefer_encoder: av1d_daemon::config::EncoderPreference::Svt,
+68 |             quality_tier: av1d_daemon::config::QualityTier::High,
+   |             ^^^^^^^^^^^^ used more than once
+
+For more information about this error, try `rustc --explain E0062`.
+error: could not compile `av1d-daemon` (test "gates_properties") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error[E0063]: missing fields `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields in initializer of `Job`
+   --> crates/daemon/tests/encode_properties.rs:213:19
+    |
+213 |         let job = Job {
+    |                   ^^^ missing `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields
+
+error[E0063]: missing fields `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields in initializer of `Job`
+   --> crates/daemon/tests/encode_properties.rs:284:19
+    |
+284 |         let job = Job {
+    |                   ^^^ missing `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields
+
+error[E0063]: missing fields `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields in initializer of `Job`
+   --> crates/daemon/tests/encode_properties.rs:365:19
+    |
+365 |         let job = Job {
+    |                   ^^^ missing `av1_profile`, `av1_quality`, `quality_tier` and 3 other fields
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `av1d-daemon` (test "encode_properties") due to 3 previous errors

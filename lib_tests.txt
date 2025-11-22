@@ -1,0 +1,39 @@
+
+running 16 tests
+test config::tests::test_encoder_preference_serialization ... FAILED
+test config::tests::test_missing_config_file_uses_defaults ... ok
+test config::tests::test_validation_empty_library_roots ... ok
+test config::tests::test_quality_tier_serialization ... FAILED
+test config::tests::test_validation_invalid_max_size_ratio_zero ... ok
+test config::tests::test_validation_invalid_max_size_ratio_above_one ... ok
+test config::tests::test_validation_zero_concurrent_jobs ... ok
+test config::tests::test_invalid_toml_syntax ... ok
+test config::tests::test_partial_config_with_defaults ... ok
+test config::tests::test_no_config_path_uses_defaults ... ok
+test startup::tests::test_encoder_selection_specific_cases ... ok
+test startup::tests::test_encoder_to_selected ... ok
+test startup::tests::test_encoder_selection_hierarchy ... ok
+test startup::tests::test_version_rejection ... ok
+test config::tests::prop_config_round_trip ... ok
+test startup::tests::test_ffmpeg_version_parsing ... ok
+
+failures:
+
+---- config::tests::test_encoder_preference_serialization stdout ----
+
+thread 'config::tests::test_encoder_preference_serialization' panicked at crates/daemon/src/config.rs:295:54:
+called `Result::unwrap()` on an `Err` value: UnsupportedType(None)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- config::tests::test_quality_tier_serialization stdout ----
+
+thread 'config::tests::test_quality_tier_serialization' panicked at crates/daemon/src/config.rs:311:49:
+called `Result::unwrap()` on an `Err` value: UnsupportedType(None)
+
+
+failures:
+    config::tests::test_encoder_preference_serialization
+    config::tests::test_quality_tier_serialization
+
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+

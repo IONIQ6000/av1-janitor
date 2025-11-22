@@ -1,0 +1,26 @@
+[package]
+name = "av1top"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "av1top"
+path = "src/main.rs"
+
+[dependencies]
+av1d-daemon = { path = "../daemon" }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+sysinfo = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }
+humansize = "2.1"
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = "3.8"

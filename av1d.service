@@ -1,0 +1,43 @@
+[Unit]
+Description=AV1 Re-encoding Daemon
+Documentation=https://github.com/yourusername/av1-reencoder
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/av1d --config /etc/av1d/config.toml
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# User and group
+User=av1d
+Group=av1d
+
+# Working directory
+WorkingDirectory=/var/lib/av1d
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/av1d /media
+
+# Resource limits
+# Allow daemon to use all available CPU cores
+LimitNOFILE=65536
+# Adjust memory limit based on max_concurrent_jobs and video resolution
+# For 32-core EPYC with 4K content: ~4GB per job
+MemoryMax=16G
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=av1d
+
+[Install]
+WantedBy=multi-user.target

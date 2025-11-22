@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc e4bb9e82bc17b97bb8973fde82a6903f00278ece03a8c368e8fd913dd69f3648 # shrinks to video_files_with_markers = ["a0_.mkv"], video_files_without_markers = ["AA0.mkv"]
+cc 17378a1923f286e48e64bd6fdc4433a7a6fcd7eebe67a00da5b482aa2336d4db # shrinks to video_files = ["_-A.mkv"], non_video_files = [], subdirs = []
