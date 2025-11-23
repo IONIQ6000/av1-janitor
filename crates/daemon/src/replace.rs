@@ -41,22 +41,38 @@ pub fn atomic_replace(
     let orig_backup = generate_backup_path(original, timestamp);
     
     // Step 1: Rename original to backup (using sync fs to avoid spurious errors on ZFS)
-    // Try rename first (fast, atomic), but fall back to copy if cross-filesystem
+    // Try rename first (fast, atomic), but fall back to copy if cross-filesystem or ZFS issues
     let _backup_created = match fs::rename(original, &orig_backup) {
         Ok(_) => true,
         Err(e) => {
             let error_kind = e.kind();
-            // Check if this is a cross-filesystem error (EXDEV on Linux)
-            let is_cross_fs = e.raw_os_error() == Some(18); // EXDEV = 18
+            let raw_error = e.raw_os_error();
+            
+            // Check if this is a cross-filesystem error (EXDEV on Linux) or ZFS read-only error (EROFS)
+            let is_cross_fs = raw_error == Some(18); // EXDEV = 18
+            let is_zfs_readonly = raw_error == Some(30); // EROFS = 30 (ZFS spurious read-only)
             
             if is_cross_fs {
                 eprintln!("Cross-filesystem detected, using copy for backup");
-                // Fall back to copy + delete for cross-filesystem
+                // Fall back to copy for cross-filesystem
                 match fs::copy(original, &orig_backup) {
                     Ok(_) => true,
                     Err(copy_err) => {
                         return Err(copy_err).context(format!(
                             "Failed to copy original {:?} to backup {:?}",
+                            original, orig_backup
+                        ));
+                    }
+                }
+            } else if is_zfs_readonly {
+                eprintln!("ZFS read-only error on rename, using copy for backup");
+                eprintln!("  This is a known ZFS issue with rename() operations");
+                // Fall back to copy for ZFS read-only errors
+                match fs::copy(original, &orig_backup) {
+                    Ok(_) => true,
+                    Err(copy_err) => {
+                        return Err(copy_err).context(format!(
+                            "Failed to copy original {:?} to backup {:?} (ZFS workaround)",
                             original, orig_backup
                         ));
                     }
