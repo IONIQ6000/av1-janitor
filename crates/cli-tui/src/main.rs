@@ -754,39 +754,44 @@ fn calculate_estimated_output_size(job: &Job) -> Option<u64> {
     
     // If we have actual quality setting, use it for more accurate estimation
     if let Some(quality) = job.av1_quality {
-        // Base reduction percentage by quality
+        // Base reduction percentage by quality (more conservative, realistic values)
+        // AV1 typically achieves 30-50% reduction from H.264, less from HEVC
         let base_reduction: f64 = match quality {
-            20..=22 => 0.45, // ~45% reduction (very high quality)
-            23..=24 => 0.55, // ~55% reduction (high quality)
-            25..=26 => 0.65, // ~65% reduction (balanced)
-            27..=28 => 0.70, // ~70% reduction (more compression)
-            29..=30 => 0.75, // ~75% reduction (high compression)
-            _ => 0.60, // Default
+            20..=22 => 0.25, // ~25% reduction (very high quality, minimal compression)
+            23..=24 => 0.30, // ~30% reduction (high quality)
+            25..=26 => 0.35, // ~35% reduction (balanced)
+            27..=28 => 0.40, // ~40% reduction (more compression)
+            29..=30 => 0.45, // ~45% reduction (high compression)
+            31..=35 => 0.50, // ~50% reduction (very high compression)
+            _ => 0.35, // Default to conservative 35%
         };
         
         // Adjust based on source codec efficiency
         let codec_factor: f64 = match codec.to_lowercase().as_str() {
-            "h264" | "avc" => 1.05, // H.264 allows more compression
-            "hevc" | "h265" => 0.90, // HEVC already efficient, less room
-            "vp9" => 0.92, // VP9 already efficient
-            "av1" => 1.0, // Already AV1
+            "h264" | "avc" => 1.2, // H.264 allows more compression (30-50% typical)
+            "hevc" | "h265" => 0.7, // HEVC already efficient, less room (15-25% typical)
+            "vp9" => 0.75, // VP9 already efficient (15-30% typical)
+            "av1" => 0.95, // Already AV1, minimal gains (5-10% from re-encode)
+            "mpeg2" | "mpeg4" => 1.4, // Old codecs compress much more
             _ => 1.0, // Default
         };
         
-        let reduction = (base_reduction * codec_factor).min(0.80).max(0.35);
+        let reduction = (base_reduction * codec_factor).min(0.60).max(0.10);
         let estimated_output_size = orig_bytes as f64 * (1.0 - reduction);
         return Some(estimated_output_size as u64);
     }
     
     // Fallback to codec-based estimation if quality not available
-    let efficiency_factor = match codec.to_lowercase().as_str() {
-        "hevc" | "h265" => 0.55,
-        "h264" | "avc" => 0.40,
-        "vp9" => 0.85,
-        "av1" => 1.0,
-        _ => 0.5,
+    // Conservative estimates: AV1 typically 30-40% smaller than H.264, 15-25% smaller than HEVC
+    let reduction_factor = match codec.to_lowercase().as_str() {
+        "hevc" | "h265" => 0.20, // 20% reduction from HEVC
+        "h264" | "avc" => 0.35, // 35% reduction from H.264
+        "vp9" => 0.25, // 25% reduction from VP9
+        "av1" => 0.05, // 5% reduction from re-encoding AV1
+        "mpeg2" | "mpeg4" => 0.50, // 50% reduction from old codecs
+        _ => 0.30, // Default 30% reduction
     };
-    Some((orig_bytes as f64 * efficiency_factor) as u64)
+    Some((orig_bytes as f64 * (1.0 - reduction_factor)) as u64)
 }
 
 /// Estimate space savings in GB and percentage for AV1 transcoding based on video properties
