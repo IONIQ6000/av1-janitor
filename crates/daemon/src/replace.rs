@@ -65,16 +65,22 @@ pub fn atomic_replace(
                     }
                 }
             } else if is_zfs_readonly {
-                eprintln!("ZFS read-only error on rename, using copy for backup");
-                eprintln!("  This is a known ZFS issue with rename() operations");
-                // Fall back to copy for ZFS read-only errors
+                eprintln!("ZFS/permissions error on rename, trying copy for backup");
+                // Try to copy for backup, but if that also fails, we'll skip backup
                 match fs::copy(original, &orig_backup) {
-                    Ok(_) => true,
+                    Ok(_) => {
+                        eprintln!("  Successfully created backup via copy");
+                        true
+                    }
                     Err(copy_err) => {
-                        return Err(copy_err).context(format!(
-                            "Failed to copy original {:?} to backup {:?} (ZFS workaround)",
-                            original, orig_backup
-                        ));
+                        // Copy also failed - likely permissions issue
+                        // We'll proceed WITHOUT backup (risky but only option)
+                        eprintln!("WARNING: Cannot create backup (rename and copy both failed)");
+                        eprintln!("  This is likely a permissions issue");
+                        eprintln!("  Proceeding to replace WITHOUT backup (risky!)");
+                        eprintln!("  Original will be deleted: {:?}", original);
+                        eprintln!("  Copy error: {}", copy_err);
+                        false // No backup created
                     }
                 }
             } else {
@@ -106,8 +112,44 @@ pub fn atomic_replace(
         }
     };
     
-    // Step 2: Copy new to original name (use copy for cross-filesystem support)
-    // If this fails, we need to restore the original
+    // Step 2: If no backup was created, we need to delete the original first
+    // Otherwise, copy new to original name
+    if !_backup_created {
+        // No backup - delete original and move new file in place
+        eprintln!("Deleting original (no backup possible)");
+        if let Err(e) = fs::remove_file(original) {
+            return Err(e).context(format!(
+                "Failed to delete original {:?} (no backup possible)",
+                original
+            ));
+        }
+        
+        // Now move/copy the new file to original location
+        match fs::rename(new, original) {
+            Ok(_) => {
+                eprintln!("Successfully moved new file to original location");
+                return Ok(());
+            }
+            Err(_) => {
+                // Rename failed, try copy
+                match fs::copy(new, original) {
+                    Ok(_) => {
+                        fs::remove_file(new).ok(); // Clean up temp file
+                        eprintln!("Successfully copied new file to original location");
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        return Err(e).context(format!(
+                            "Failed to move new file {:?} to original location {:?} (original was deleted!)",
+                            new, original
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    
+    // Step 3: Normal path - backup exists, copy new to original name
     match fs::copy(new, original) {
         Ok(_) => {
             // Successfully copied, now delete the source temp file
@@ -115,12 +157,9 @@ pub fn atomic_replace(
                 eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
             }
             
-            // If we used copy for backup, the original still exists at backup location
-            // No additional cleanup needed for the backup creation step
-            
             // Now handle the backup file
             if !keep_original {
-                // Step 3: Delete the backup if not keeping original
+                // Delete the backup if not keeping original
                 if let Err(e) = fs::remove_file(&orig_backup) {
                     // Log warning but don't fail - the replacement succeeded
                     eprintln!(
