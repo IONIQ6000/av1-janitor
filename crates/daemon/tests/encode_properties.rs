@@ -16,12 +16,12 @@ proptest! {
     /// **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5**
     /// 
     /// For any video height, the system should select the appropriate CRF value
-    /// according to the quality-first ladder:
-    /// - 21 for ≥2160p
-    /// - 22 for 1440p
-    /// - 23 for 1080p
-    /// - 24 for <1080p
-    /// With adjustment (+1) for exceptionally low bitrate
+    /// according to the ultra-high quality ladder:
+    /// - 20 for ≥2160p (very high quality)
+    /// - 21 for 1440p (very high quality)
+    /// - 22 for 1080p (high quality)
+    /// - 23 for <1080p (high quality)
+    /// No bitrate adjustment - prioritize quality over size
     #[test]
     fn prop_crf_selection_by_resolution(
         height in 480i32..4320i32,
@@ -29,37 +29,15 @@ proptest! {
     ) {
         let crf = select_crf(height, bitrate);
         
-        // Determine expected base CRF based on height
-        let expected_base_crf = if height >= 2160 {
-            21
+        // Determine expected CRF based on height (no bitrate adjustment)
+        let expected_crf = if height >= 2160 {
+            20
         } else if height >= 1440 {
-            22
+            21
         } else if height >= 1080 {
+            22
+        } else {
             23
-        } else {
-            24
-        };
-        
-        // Check if bitrate adjustment should apply
-        let should_adjust = if let Some(br) = bitrate {
-            let threshold = if height >= 2160 {
-                20_000_000 // 20 Mbps
-            } else if height >= 1440 {
-                10_000_000 // 10 Mbps
-            } else if height >= 1080 {
-                5_000_000 // 5 Mbps
-            } else {
-                2_000_000 // 2 Mbps
-            };
-            br < threshold
-        } else {
-            false
-        };
-        
-        let expected_crf = if should_adjust {
-            expected_base_crf + 1
-        } else {
-            expected_base_crf
         };
         
         prop_assert_eq!(crf, expected_crf,
@@ -71,10 +49,10 @@ proptest! {
     /// **Validates: Requirements 12.1, 12.2, 12.3, 12.4, 12.5**
     /// 
     /// For any video height and quality tier, the system should select the
-    /// appropriate SVT-AV1 preset value:
-    /// - Preset 3 for ≥2160p
-    /// - Preset 4 for 1440p and 1080p
-    /// - Preset 5 for <1080p
+    /// appropriate SVT-AV1 preset value (ultra-slow for maximum quality):
+    /// - Preset 2 for ≥2160p (very slow, very high quality)
+    /// - Preset 3 for 1440p and 1080p (slow, high quality)
+    /// - Preset 4 for <1080p (moderate speed, high quality)
     /// With quality tier adjustment (-1 for VeryHigh)
     #[test]
     fn prop_svt_preset_selection(
@@ -83,15 +61,15 @@ proptest! {
     ) {
         let preset = select_preset(height, quality_tier);
         
-        // Determine expected base preset based on height
+        // Determine expected base preset based on height (slower presets for quality)
         let expected_base_preset: u8 = if height >= 2160 {
-            3
+            2
         } else if height >= 1440 {
-            4
+            3
         } else if height >= 1080 {
-            4
+            3
         } else {
-            5
+            4
         };
         
         // Apply quality tier adjustment

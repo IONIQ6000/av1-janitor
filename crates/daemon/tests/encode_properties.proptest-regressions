@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 1739aa0efbadf582eb846edc0f980b2fa3dbd95a94efb1f89b59d9d4a9f678dd # shrinks to height = 480, quality_tier = High
+cc 02d346f7ed1101c2e9c510e623125348ba38d18a0cbbd99a0ed8608e1a4c4a75 # shrinks to height = 480, bitrate = None

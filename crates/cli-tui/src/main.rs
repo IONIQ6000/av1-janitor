@@ -1216,11 +1216,24 @@ impl App {
             progress.temp_file_size = current_temp_size;
             progress.last_updated = now;
             
-            // Estimate output size using quality-based calculation if available
-            let estimated_output_size = if original_size > 0 {
+            // Use ACTUAL file growth to estimate final size, not codec guesses
+            // This is much more accurate as it reflects the actual encoding happening
+            let estimated_output_size = if current_temp_size > 1_000_000 && progress.bytes_per_second > 0.0 {
+                // We have enough data to extrapolate from actual encoding
+                // Use the ratio of temp size to original size to estimate final
+                if original_size > 0 {
+                    // Estimate based on actual compression ratio so far
+                    let current_ratio = current_temp_size as f64 / original_size as f64;
+                    // Assume we're proportionally through the file (rough estimate)
+                    // This will converge to actual size as encoding progresses
+                    (original_size as f64 * current_ratio * 1.1) as u64 // 10% buffer for overhead
+                } else {
+                    current_temp_size * 2 // Fallback: assume we're halfway
+                }
+            } else if original_size > 0 {
+                // Not enough data yet, use codec-based estimate as initial guess
                 calculate_estimated_output_size(job).unwrap_or_else(|| {
-                    // Fallback to 50% if calculation fails
-                    (original_size as f64 * 0.5) as u64
+                    (original_size as f64 * 0.65) as u64 // Conservative 35% reduction
                 })
             } else {
                 0

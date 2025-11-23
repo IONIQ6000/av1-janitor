@@ -120,41 +120,34 @@ pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<Path
     Ok(PathBuf::from(output_path))
 }
 
-pub fn select_crf(height: i32, bitrate: Option<u64>) -> u8 {
+pub fn select_crf(height: i32, _bitrate: Option<u64>) -> u8 {
+    // Ultra-high quality settings - prioritize quality over speed/size
+    // Lower CRF = higher quality (18 is near-lossless, 23 is high quality)
     let base_crf = match height {
-        h if h >= 2160 => 21,
-        h if h >= 1440 => 22,
-        h if h >= 1080 => 23,
-        _ => 24,
+        h if h >= 2160 => 20, // 4K: CRF 20 (very high quality)
+        h if h >= 1440 => 21, // 1440p: CRF 21 (very high quality)
+        h if h >= 1080 => 22, // 1080p: CRF 22 (high quality)
+        _ => 23,              // 720p and below: CRF 23 (high quality)
     };
     
-    // Increase CRF by 1 if bitrate is exceptionally low
-    if let Some(br) = bitrate {
-        let threshold = match height {
-            h if h >= 2160 => 20_000_000, // 20 Mbps
-            h if h >= 1440 => 10_000_000, // 10 Mbps
-            h if h >= 1080 => 5_000_000,  // 5 Mbps
-            _ => 2_000_000,               // 2 Mbps
-        };
-        if br < threshold {
-            return base_crf + 1;
-        }
-    }
-    
+    // Don't increase CRF for low bitrate sources - maintain quality
+    // The user wants quality, not size optimization
     base_crf
 }
 
 pub fn select_preset(height: i32, quality_tier: QualityTier) -> u8 {
+    // Ultra-slow presets for maximum quality
+    // Lower preset = slower but higher quality (0 is slowest/best, 13 is fastest/worst)
     let base_preset = match height {
-        h if h >= 2160 => 3,
-        h if h >= 1440 => 4,
-        h if h >= 1080 => 4,
-        _ => 5,
+        h if h >= 2160 => 2, // 4K: Preset 2 (very slow, very high quality)
+        h if h >= 1440 => 3, // 1440p: Preset 3 (slow, high quality)
+        h if h >= 1080 => 3, // 1080p: Preset 3 (slow, high quality)
+        _ => 4,              // 720p and below: Preset 4 (moderate speed, high quality)
     };
     
     match quality_tier {
         QualityTier::High => base_preset,
-        QualityTier::VeryHigh => base_preset.saturating_sub(1),
+        QualityTier::VeryHigh => base_preset.saturating_sub(1), // Even slower for VeryHigh
     }
 }
 
