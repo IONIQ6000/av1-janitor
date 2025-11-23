@@ -41,23 +41,54 @@ pub fn atomic_replace(
     let orig_backup = generate_backup_path(original, timestamp);
     
     // Step 1: Rename original to backup (using sync fs to avoid spurious errors on ZFS)
-    if let Err(e) = fs::rename(original, &orig_backup) {
-        let error_kind = e.kind();
-        let orig_exists = original.exists();
-        let parent_exists = orig_backup.parent().map(|p| p.exists()).unwrap_or(false);
-        
-        eprintln!("ERROR: Failed to rename original to backup");
-        eprintln!("  Original: {:?} (exists: {})", original, orig_exists);
-        eprintln!("  Backup: {:?}", orig_backup);
-        eprintln!("  Parent dir exists: {}", parent_exists);
-        eprintln!("  Error kind: {:?}", error_kind);
-        eprintln!("  Error: {}", e);
-        
-        return Err(e).context(format!(
-            "Failed to rename {:?} to {:?} (kind: {:?})",
-            original, orig_backup, error_kind
-        ));
-    }
+    // Try rename first (fast, atomic), but fall back to copy if cross-filesystem
+    let _backup_created = match fs::rename(original, &orig_backup) {
+        Ok(_) => true,
+        Err(e) => {
+            let error_kind = e.kind();
+            // Check if this is a cross-filesystem error (EXDEV on Linux)
+            let is_cross_fs = e.raw_os_error() == Some(18); // EXDEV = 18
+            
+            if is_cross_fs {
+                eprintln!("Cross-filesystem detected, using copy for backup");
+                // Fall back to copy + delete for cross-filesystem
+                match fs::copy(original, &orig_backup) {
+                    Ok(_) => true,
+                    Err(copy_err) => {
+                        return Err(copy_err).context(format!(
+                            "Failed to copy original {:?} to backup {:?}",
+                            original, orig_backup
+                        ));
+                    }
+                }
+            } else {
+                let orig_exists = original.exists();
+                let parent_exists = orig_backup.parent().map(|p| p.exists()).unwrap_or(false);
+                
+                eprintln!("ERROR: Failed to rename original to backup");
+                eprintln!("  Original: {:?} (exists: {})", original, orig_exists);
+                eprintln!("  Backup: {:?}", orig_backup);
+                eprintln!("  Parent dir exists: {}", parent_exists);
+                eprintln!("  Error kind: {:?}", error_kind);
+                eprintln!("  Error: {}", e);
+                
+                // Check permissions
+                if let Ok(metadata) = fs::metadata(original) {
+                    eprintln!("  Original permissions: {:?}", metadata.permissions());
+                }
+                if let Some(parent) = orig_backup.parent() {
+                    if let Ok(metadata) = fs::metadata(parent) {
+                        eprintln!("  Parent dir permissions: {:?}", metadata.permissions());
+                    }
+                }
+                
+                return Err(e).context(format!(
+                    "Failed to rename {:?} to {:?} (kind: {:?})",
+                    original, orig_backup, error_kind
+                ));
+            }
+        }
+    };
     
     // Step 2: Copy new to original name (use copy for cross-filesystem support)
     // If this fails, we need to restore the original
@@ -67,6 +98,9 @@ pub fn atomic_replace(
             if let Err(e) = fs::remove_file(new) {
                 eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
             }
+            
+            // If we used copy for backup, the original still exists at backup location
+            // No additional cleanup needed for the backup creation step
             
             // Now handle the backup file
             if !keep_original {
@@ -89,6 +123,18 @@ pub fn atomic_replace(
             eprintln!("  Original: {:?}", original);
             eprintln!("  Error kind: {:?}", error_kind);
             eprintln!("  Error: {}", e);
+            
+            // Check permissions and file info
+            if let Ok(metadata) = fs::metadata(new) {
+                eprintln!("  New file size: {} bytes", metadata.len());
+                eprintln!("  New file permissions: {:?}", metadata.permissions());
+            }
+            if let Some(parent) = original.parent() {
+                if let Ok(metadata) = fs::metadata(parent) {
+                    eprintln!("  Target dir permissions: {:?}", metadata.permissions());
+                }
+            }
+            
             eprintln!("Attempting to restore original from backup {:?}", orig_backup);
             
             // Try to restore the original

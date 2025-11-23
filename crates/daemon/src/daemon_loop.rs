@@ -294,6 +294,18 @@ async fn process_candidate(
     
     // Step 10: Atomic replacement
     info!("Replacing original file for job {}", job.id);
+    info!("  Original: {:?}", path);
+    info!("  Encoded: {:?}", encoded_path);
+    info!("  Keep original: {}", config.keep_original);
+    
+    // Log file sizes for debugging
+    if let Ok(orig_meta) = std::fs::metadata(path) {
+        info!("  Original size: {} bytes", orig_meta.len());
+    }
+    if let Ok(enc_meta) = std::fs::metadata(&encoded_path) {
+        info!("  Encoded size: {} bytes", enc_meta.len());
+    }
+    
     match atomic_replace(path, &encoded_path, config.keep_original) {
         Ok(()) => {
             info!("Successfully replaced {:?}", path);
@@ -301,6 +313,7 @@ async fn process_candidate(
         }
         Err(e) => {
             error!("Failed to replace file for job {}: {}", job.id, e);
+            error!("Full error chain: {:?}", e);
             job.reason = Some(format!("Replacement failed: {}", e));
             update_job_status(&mut job, JobStatus::Failed, &config.job_state_dir)?;
             
