@@ -112,41 +112,61 @@ pub fn atomic_replace(
         }
     };
     
-    // Step 2: If no backup was created, we need to delete the original first
+    // Step 2: If no backup was created, use a safer two-step process
     // Otherwise, copy new to original name
     if !_backup_created {
-        // No backup - delete original and move new file in place
-        eprintln!("Deleting original (no backup possible)");
-        if let Err(e) = fs::remove_file(original) {
+        // No backup possible - use safer approach:
+        // 1. Copy new file to a temp name in the same directory
+        // 2. Delete original
+        // 3. Rename temp to original name
+        // This ensures we don't lose data if step 2 or 3 fails
+        
+        eprintln!("No backup possible - using safe two-step replacement");
+        
+        let temp_in_place = original.with_extension("av1tmp");
+        
+        // Step 2a: Copy new file to temp location in target directory
+        eprintln!("  Step 1: Copying new file to temp location");
+        if let Err(e) = fs::copy(new, &temp_in_place) {
             return Err(e).context(format!(
-                "Failed to delete original {:?} (no backup possible)",
+                "Failed to copy new file {:?} to temp location {:?}",
+                new, temp_in_place
+            ));
+        }
+        
+        // Step 2b: Delete original (we have a copy of new file in place now)
+        eprintln!("  Step 2: Deleting original file");
+        if let Err(e) = fs::remove_file(original) {
+            // Failed to delete original - clean up temp file
+            fs::remove_file(&temp_in_place).ok();
+            return Err(e).context(format!(
+                "Failed to delete original {:?} (temp file cleaned up)",
                 original
             ));
         }
         
-        // Now move/copy the new file to original location
-        match fs::rename(new, original) {
-            Ok(_) => {
-                eprintln!("Successfully moved new file to original location");
-                return Ok(());
+        // Step 2c: Rename temp to original name
+        eprintln!("  Step 3: Renaming temp to original location");
+        if let Err(_e) = fs::rename(&temp_in_place, original) {
+            // This is bad - original is deleted but rename failed
+            // Try to recover by copying instead
+            eprintln!("  WARNING: Rename failed, trying copy as fallback");
+            if let Err(copy_err) = fs::copy(&temp_in_place, original) {
+                return Err(copy_err).context(format!(
+                    "CRITICAL: Failed to rename/copy temp {:?} to original {:?}. Original was deleted! Temp file preserved at {:?}",
+                    temp_in_place, original, temp_in_place
+                ));
             }
-            Err(_) => {
-                // Rename failed, try copy
-                match fs::copy(new, original) {
-                    Ok(_) => {
-                        fs::remove_file(new).ok(); // Clean up temp file
-                        eprintln!("Successfully copied new file to original location");
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        return Err(e).context(format!(
-                            "Failed to move new file {:?} to original location {:?} (original was deleted!)",
-                            new, original
-                        ));
-                    }
-                }
-            }
+            fs::remove_file(&temp_in_place).ok();
         }
+        
+        // Clean up source temp file
+        if let Err(e) = fs::remove_file(new) {
+            eprintln!("Warning: Failed to delete source temp file {:?}: {}", new, e);
+        }
+        
+        eprintln!("Successfully replaced file without backup");
+        return Ok(());
     }
     
     // Step 3: Normal path - backup exists, copy new to original name
