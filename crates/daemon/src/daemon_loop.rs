@@ -294,7 +294,7 @@ async fn process_candidate(
     
     // Step 10: Atomic replacement
     info!("Replacing original file for job {}", job.id);
-    match atomic_replace(path, &encoded_path, config.keep_original).await {
+    match atomic_replace(path, &encoded_path, config.keep_original) {
         Ok(()) => {
             info!("Successfully replaced {:?}", path);
             update_job_status(&mut job, JobStatus::Success, &config.job_state_dir)?;

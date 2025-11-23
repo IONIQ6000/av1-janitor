@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use tokio::fs;
+use std::fs;
 
 /// Atomically replace the original file with the new file.
 /// 
@@ -18,7 +18,7 @@ use tokio::fs;
 /// # Returns
 /// * `Ok(())` on success
 /// * `Err` if any operation fails, with attempted rollback
-pub async fn atomic_replace(
+pub fn atomic_replace(
     original: &Path,
     new: &Path,
     keep_original: bool,
@@ -40,8 +40,8 @@ pub async fn atomic_replace(
     
     let orig_backup = generate_backup_path(original, timestamp);
     
-    // Step 1: Rename original to backup
-    if let Err(e) = fs::rename(original, &orig_backup).await {
+    // Step 1: Rename original to backup (using sync fs to avoid spurious errors on ZFS)
+    if let Err(e) = fs::rename(original, &orig_backup) {
         let error_kind = e.kind();
         let orig_exists = original.exists();
         let parent_exists = orig_backup.parent().map(|p| p.exists()).unwrap_or(false);
@@ -61,17 +61,17 @@ pub async fn atomic_replace(
     
     // Step 2: Copy new to original name (use copy for cross-filesystem support)
     // If this fails, we need to restore the original
-    match fs::copy(new, original).await {
+    match fs::copy(new, original) {
         Ok(_) => {
             // Successfully copied, now delete the source temp file
-            if let Err(e) = fs::remove_file(new).await {
+            if let Err(e) = fs::remove_file(new) {
                 eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
             }
             
             // Now handle the backup file
             if !keep_original {
                 // Step 3: Delete the backup if not keeping original
-                if let Err(e) = fs::remove_file(&orig_backup).await {
+                if let Err(e) = fs::remove_file(&orig_backup) {
                     // Log warning but don't fail - the replacement succeeded
                     eprintln!(
                         "Warning: Failed to delete backup file {:?}: {}",
@@ -92,7 +92,7 @@ pub async fn atomic_replace(
             eprintln!("Attempting to restore original from backup {:?}", orig_backup);
             
             // Try to restore the original
-            match fs::rename(&orig_backup, original).await {
+            match fs::rename(&orig_backup, original) {
                 Ok(_) => {
                     anyhow::bail!(
                         "Failed to copy new file to original, but successfully restored original: {}",
