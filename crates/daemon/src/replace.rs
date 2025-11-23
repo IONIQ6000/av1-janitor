@@ -42,13 +42,20 @@ pub async fn atomic_replace(
     
     // Step 1: Rename original to backup
     if let Err(e) = fs::rename(original, &orig_backup).await {
-        eprintln!("DEBUG: rename failed with error: {:?}", e);
-        eprintln!("DEBUG: original exists: {}", original.exists());
-        eprintln!("DEBUG: backup path: {:?}", orig_backup);
-        eprintln!("DEBUG: parent dir exists: {}", orig_backup.parent().map(|p| p.exists()).unwrap_or(false));
+        let error_kind = e.kind();
+        let orig_exists = original.exists();
+        let parent_exists = orig_backup.parent().map(|p| p.exists()).unwrap_or(false);
+        
+        eprintln!("ERROR: Failed to rename original to backup");
+        eprintln!("  Original: {:?} (exists: {})", original, orig_exists);
+        eprintln!("  Backup: {:?}", orig_backup);
+        eprintln!("  Parent dir exists: {}", parent_exists);
+        eprintln!("  Error kind: {:?}", error_kind);
+        eprintln!("  Error: {}", e);
+        
         return Err(e).context(format!(
-            "Failed to rename original {:?} to backup {:?}",
-            original, orig_backup
+            "Failed to rename {:?} to {:?} (kind: {:?})",
+            original, orig_backup, error_kind
         ));
     }
     
@@ -76,10 +83,12 @@ pub async fn atomic_replace(
         }
         Err(e) => {
             // Copy failed - attempt rollback
-            eprintln!(
-                "Error copying new file {:?} to original {:?}: {}",
-                new, original, e
-            );
+            let error_kind = e.kind();
+            eprintln!("ERROR: Failed to copy new file to original location");
+            eprintln!("  New file: {:?} (exists: {})", new, new.exists());
+            eprintln!("  Original: {:?}", original);
+            eprintln!("  Error kind: {:?}", error_kind);
+            eprintln!("  Error: {}", e);
             eprintln!("Attempting to restore original from backup {:?}", orig_backup);
             
             // Try to restore the original

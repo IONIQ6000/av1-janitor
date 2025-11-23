@@ -2657,7 +2657,7 @@ fn render_job_table(f: &mut Frame, app: &mut App, area: Rect) {
                     "-".to_string()
                 };
 
-                let reason = truncate_string(job.reason.as_deref().unwrap_or("-"), 30);
+                let reason = truncate_string(job.reason.as_deref().unwrap_or("-"), 80);
                 
                 let quality_str = if let Some(quality) = job.av1_quality {
                     format!("{}", quality)
