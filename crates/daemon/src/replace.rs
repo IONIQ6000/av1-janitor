@@ -56,11 +56,8 @@ pub async fn atomic_replace(
             if let Err(e) = fs::remove_file(new).await {
                 eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
             }
-        }
-        Err(e) => {
-            // Copy failed - attempt rollback
-        Ok(_) => {
-            // Success! Now handle the backup file
+            
+            // Now handle the backup file
             if !keep_original {
                 // Step 3: Delete the backup if not keeping original
                 if let Err(e) = fs::remove_file(&orig_backup).await {
@@ -74,9 +71,9 @@ pub async fn atomic_replace(
             Ok(())
         }
         Err(e) => {
-            // Step 2 failed - attempt rollback
+            // Copy failed - attempt rollback
             eprintln!(
-                "Error renaming new file {:?} to original {:?}: {}",
+                "Error copying new file {:?} to original {:?}: {}",
                 new, original, e
             );
             eprintln!("Attempting to restore original from backup {:?}", orig_backup);
@@ -85,13 +82,13 @@ pub async fn atomic_replace(
             match fs::rename(&orig_backup, original).await {
                 Ok(_) => {
                     anyhow::bail!(
-                        "Failed to rename new file to original, but successfully restored original: {}",
+                        "Failed to copy new file to original, but successfully restored original: {}",
                         e
                     );
                 }
                 Err(restore_err) => {
                     anyhow::bail!(
-                        "Failed to rename new file to original: {}. \
+                        "Failed to copy new file to original: {}. \
                          CRITICAL: Also failed to restore original from backup: {}. \
                          Original file is at: {:?}",
                         e,
