@@ -78,6 +78,18 @@ pub fn create_job(
     probe: ProbeResult,
     classification: SourceClassification,
 ) -> Job {
+    // Extract metadata from the main video stream
+    let main_video = probe.main_video_stream();
+    
+    // Detect HDR from pixel format
+    let is_hdr = main_video
+        .and_then(|v| v.pix_fmt.as_ref())
+        .map(|fmt| {
+            fmt.contains("p010") || fmt.contains("p016") || 
+            fmt.contains("yuv420p10") || fmt.contains("yuv422p10") || 
+            fmt.contains("yuv444p10") || fmt.contains("yuv420p12")
+        });
+    
     Job {
         id: Uuid::new_v4().to_string(),
         source_path: file.path,
@@ -90,17 +102,17 @@ pub fn create_job(
         original_bytes: Some(file.size_bytes),
         new_bytes: None,
         is_web_like: matches!(classification.source_type, crate::classify::SourceType::WebLike),
-        video_codec: probe.video_codec,
-        video_bitrate: probe.video_bitrate,
-        video_width: probe.width,
-        video_height: probe.height,
-        video_frame_rate: probe.frame_rate,
+        video_codec: main_video.map(|v| v.codec_name.clone()),
+        video_bitrate: main_video.and_then(|v| v.bitrate),
+        video_width: main_video.map(|v| v.width),
+        video_height: main_video.map(|v| v.height),
+        video_frame_rate: main_video.and_then(|v| v.frame_rate.clone()),
         crf_used: None,
         preset_used: None,
         encoder_used: None,
-        source_bit_depth: probe.bit_depth,
-        source_pix_fmt: probe.pix_fmt,
-        is_hdr: probe.is_hdr,
+        source_bit_depth: main_video.and_then(|v| v.bit_depth),
+        source_pix_fmt: main_video.and_then(|v| v.pix_fmt.clone()),
+        is_hdr,
         av1_quality: None,
         target_bit_depth: None,
         av1_profile: None,
