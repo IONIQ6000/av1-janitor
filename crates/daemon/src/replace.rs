@@ -48,9 +48,17 @@ pub async fn atomic_replace(
             original, orig_backup
         ))?;
     
-    // Step 2: Rename new to original name
+    // Step 2: Copy new to original name (use copy for cross-filesystem support)
     // If this fails, we need to restore the original
-    match fs::rename(new, original).await {
+    match fs::copy(new, original).await {
+        Ok(_) => {
+            // Successfully copied, now delete the source temp file
+            if let Err(e) = fs::remove_file(new).await {
+                eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
+            }
+        }
+        Err(e) => {
+            // Copy failed - attempt rollback
         Ok(_) => {
             // Success! Now handle the backup file
             if !keep_original {
