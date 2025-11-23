@@ -3,7 +3,14 @@ use clap::Parser;
 use chrono::{Utc, DateTime};
 
 mod models;
+mod metadata;
+
 use models::{TranscodeConfig, Job, JobStatus, load_all_jobs};
+use metadata::{
+    has_estimation_metadata, has_complete_video_metadata, get_missing_metadata_fields,
+    format_optional, format_size_optional, format_percentage_optional,
+    format_missing_metadata, format_codec,
+};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -735,17 +742,6 @@ impl JobProgress {
         }
     }
 }
-
-/// Validate that job has all required metadata for estimation
-fn has_estimation_metadata(job: &Job) -> bool {
-    job.original_bytes.is_some()
-        && job.video_codec.is_some()
-        && job.video_width.is_some()
-        && job.video_height.is_some()
-        && job.video_bitrate.is_some()
-        && job.video_frame_rate.is_some()
-}
-
 /// Calculate estimated output size based on quality and codec
 /// Returns None if required metadata is not available
 fn calculate_estimated_output_size(job: &Job) -> Option<u64> {
@@ -2462,11 +2458,16 @@ fn render_top_bar(f: &mut Frame, app: &App, area: Rect) {
     } else {
         app.color_scheme.metric_low
     };
+    
+    // Format memory usage in GB and percentage (Requirement 8.3)
+    let used_memory_gb = used_memory as f64 / 1_073_741_824.0; // Convert bytes to GB (1024^3)
+    let memory_label = format!("{:.1} GB ({:.1}%)", used_memory_gb, memory_percent);
+    
     let memory_gauge = Gauge::default()
         .block(Block::default().borders(Borders::ALL).title("💾 MEMORY"))
         .gauge_style(Style::default().fg(memory_color))
         .percent(memory_percent_u16)
-        .label(format!("{:.1}%", memory_percent));
+        .label(memory_label);
     f.render_widget(memory_gauge, gauge_chunks[1]);
 }
 
@@ -4740,5 +4741,216 @@ mod tests {
         
         // Cache should be cleaned up
         assert!(!app.estimated_savings_cache.contains_key(&pending_job.id));
+    }
+    
+    // Property tests for responsive layout behavior
+    
+    /// **Feature: tui-missing-info-fix, Property 26: Narrow terminal column visibility**
+    /// **Validates: Requirements 7.1**
+    /// 
+    /// For any terminal width less than 80 columns, the job table should display only 
+    /// status, file name, and savings columns.
+    #[test]
+    fn property_narrow_terminal_layout() {
+        proptest!(|(
+            terminal_width in 40u16..80,
+            terminal_height in 12u16..50,
+        )| {
+            // Create a Rect with narrow terminal dimensions
+            let size = Rect::new(0, 0, terminal_width, terminal_height);
+            
+            // Create layout configuration
+            let layout = LayoutConfig::from_terminal_size(size);
+            
+            // Property 1: For terminals < 80 columns, should show minimal columns
+            if terminal_width < 80 {
+                // Should show only essential columns: Status, File, Savings
+                // Plus potentially OrigSize and NewSize if width >= 80 but < 120
+                prop_assert!(layout.table_columns.len() <= 5,
+                    "Narrow terminal (width={}) should show at most 5 columns, got {}",
+                    terminal_width, layout.table_columns.len());
+                
+                // Property 2: Status column should always be present
+                prop_assert!(layout.table_columns.contains(&TableColumn::Status),
+                    "Status column should always be visible");
+                
+                // Property 3: File column should always be present
+                prop_assert!(layout.table_columns.contains(&TableColumn::File),
+                    "File column should always be visible");
+                
+                // Property 4: Savings column should always be present
+                prop_assert!(layout.table_columns.contains(&TableColumn::Savings),
+                    "Savings column should always be visible");
+            }
+            
+            // Property 5: Very narrow terminals (< 80) should show exactly 3 columns
+            if terminal_width < 80 && terminal_height < 12 {
+                prop_assert_eq!(layout.table_columns.len(), 3,
+                    "Very small terminal should show exactly 3 columns");
+            }
+        });
+    }
+    
+    /// **Feature: tui-missing-info-fix, Property 27: Short terminal component visibility**
+    /// **Validates: Requirements 7.2**
+    /// 
+    /// For any terminal height less than 20 lines, the statistics dashboard should be hidden.
+    #[test]
+    fn property_short_terminal_layout() {
+        proptest!(|(
+            terminal_width in 80u16..200,
+            terminal_height in 10u16..20,
+        )| {
+            // Create a Rect with short terminal dimensions
+            let size = Rect::new(0, 0, terminal_width, terminal_height);
+            
+            // Create layout configuration
+            let layout = LayoutConfig::from_terminal_size(size);
+            
+            // Property 1: For terminals < 20 lines, statistics should be hidden
+            if terminal_height < 20 {
+                prop_assert!(!layout.show_statistics,
+                    "Statistics should be hidden for terminal height < 20 (height={})",
+                    terminal_height);
+                
+                prop_assert_eq!(layout.statistics_height, 0,
+                    "Statistics height should be 0 when hidden");
+            }
+            
+            // Property 2: For terminals >= 20 lines, statistics should be shown
+            if terminal_height >= 20 && !layout.is_too_small {
+                prop_assert!(layout.show_statistics,
+                    "Statistics should be shown for terminal height >= 20 (height={})",
+                    terminal_height);
+                
+                prop_assert!(layout.statistics_height > 0,
+                    "Statistics height should be > 0 when shown");
+            }
+            
+            // Property 3: Table should still be visible even when statistics are hidden
+            prop_assert!(layout.table_height >= 3,
+                "Table should have minimum height of 3 lines");
+        });
+    }
+    
+    /// **Feature: tui-missing-info-fix, Property 28: Very small terminal simplified view**
+    /// **Validates: Requirements 7.3**
+    /// 
+    /// For any terminal smaller than 80x12, a simplified view should be used.
+    #[test]
+    fn property_very_small_terminal() {
+        proptest!(|(
+            terminal_width in 40u16..80,
+            terminal_height in 8u16..12,
+        )| {
+            // Create a Rect with very small terminal dimensions
+            let size = Rect::new(0, 0, terminal_width, terminal_height);
+            
+            // Create layout configuration
+            let layout = LayoutConfig::from_terminal_size(size);
+            
+            // Property 1: Very small terminals should be flagged
+            if terminal_width < 80 || terminal_height < 12 {
+                prop_assert!(layout.is_too_small,
+                    "Terminal {}x{} should be flagged as too small",
+                    terminal_width, terminal_height);
+            }
+            
+            // Property 2: Statistics should be hidden in very small terminals
+            if layout.is_too_small {
+                prop_assert!(!layout.show_statistics,
+                    "Statistics should be hidden in very small terminals");
+                
+                prop_assert_eq!(layout.statistics_height, 0,
+                    "Statistics height should be 0 in very small terminals");
+            }
+            
+            // Property 3: Current job panel should be hidden in very small terminals
+            if layout.is_too_small {
+                prop_assert_eq!(layout.current_job_height, 0,
+                    "Current job panel should be hidden in very small terminals");
+            }
+            
+            // Property 4: Only essential columns should be shown
+            if layout.is_too_small {
+                prop_assert_eq!(layout.table_columns.len(), 3,
+                    "Very small terminals should show exactly 3 columns");
+                
+                prop_assert!(layout.table_columns.contains(&TableColumn::Status),
+                    "Status column should be visible");
+                prop_assert!(layout.table_columns.contains(&TableColumn::File),
+                    "File column should be visible");
+                prop_assert!(layout.table_columns.contains(&TableColumn::Savings),
+                    "Savings column should be visible");
+            }
+            
+            // Property 5: Header and status bar should still be present
+            prop_assert!(layout.header_height > 0,
+                "Header should always be present");
+            prop_assert!(layout.status_bar_height > 0,
+                "Status bar should always be present");
+        });
+    }
+    
+    /// **Feature: tui-missing-info-fix, Property 29: Column priority in constrained layouts**
+    /// **Validates: Requirements 7.5**
+    /// 
+    /// For any terminal with width constraints, the visible columns should prioritize 
+    /// status, file name, and savings information.
+    #[test]
+    fn property_column_priority() {
+        proptest!(|(
+            terminal_width in 40u16..200,
+            terminal_height in 12u16..50,
+        )| {
+            // Create a Rect with the specified dimensions
+            let size = Rect::new(0, 0, terminal_width, terminal_height);
+            
+            // Create layout configuration
+            let layout = LayoutConfig::from_terminal_size(size);
+            
+            // Property 1: Status, File, and Savings should always be present
+            prop_assert!(layout.table_columns.contains(&TableColumn::Status),
+                "Status column should always be visible (priority column)");
+            prop_assert!(layout.table_columns.contains(&TableColumn::File),
+                "File column should always be visible (priority column)");
+            prop_assert!(layout.table_columns.contains(&TableColumn::Savings),
+                "Savings column should always be visible (priority column)");
+            
+            // Property 2: Priority columns should appear first in the list
+            let status_idx = layout.table_columns.iter().position(|c| c == &TableColumn::Status);
+            let file_idx = layout.table_columns.iter().position(|c| c == &TableColumn::File);
+            let savings_idx = layout.table_columns.iter().position(|c| c == &TableColumn::Savings);
+            
+            prop_assert!(status_idx.is_some(), "Status should be in column list");
+            prop_assert!(file_idx.is_some(), "File should be in column list");
+            prop_assert!(savings_idx.is_some(), "Savings should be in column list");
+            
+            // Property 3: As width increases, more columns should be added
+            if terminal_width >= 160 {
+                prop_assert!(layout.table_columns.len() >= 10,
+                    "Large terminals (width >= 160) should show many columns");
+            } else if terminal_width >= 120 {
+                prop_assert!(layout.table_columns.len() >= 7,
+                    "Medium terminals (width >= 120) should show several columns");
+            } else if terminal_width >= 80 {
+                prop_assert!(layout.table_columns.len() >= 5,
+                    "Small terminals (width >= 80) should show at least 5 columns");
+            } else {
+                prop_assert!(layout.table_columns.len() >= 3,
+                    "Very small terminals should show at least 3 columns");
+            }
+            
+            // Property 4: Column count should never exceed the total available columns
+            prop_assert!(layout.table_columns.len() <= 14,
+                "Should never show more than 14 columns (total available)");
+            
+            // Property 5: No duplicate columns
+            let mut seen = std::collections::HashSet::new();
+            for col in &layout.table_columns {
+                prop_assert!(seen.insert(col),
+                    "Column {:?} should appear only once", col);
+            }
+        });
     }
 }
