@@ -41,12 +41,16 @@ pub async fn atomic_replace(
     let orig_backup = generate_backup_path(original, timestamp);
     
     // Step 1: Rename original to backup
-    fs::rename(original, &orig_backup)
-        .await
-        .context(format!(
+    if let Err(e) = fs::rename(original, &orig_backup).await {
+        eprintln!("DEBUG: rename failed with error: {:?}", e);
+        eprintln!("DEBUG: original exists: {}", original.exists());
+        eprintln!("DEBUG: backup path: {:?}", orig_backup);
+        eprintln!("DEBUG: parent dir exists: {}", orig_backup.parent().map(|p| p.exists()).unwrap_or(false));
+        return Err(e).context(format!(
             "Failed to rename original {:?} to backup {:?}",
             original, orig_backup
-        ))?;
+        ));
+    }
     
     // Step 2: Copy new to original name (use copy for cross-filesystem support)
     // If this fails, we need to restore the original
