@@ -17,10 +17,10 @@ proptest! {
     ///
     /// For any video height, the system should select the appropriate CRF value
     /// according to the ultra-high quality ladder:
-    /// - 20 for ≥2160p (very high quality)
-    /// - 21 for 1440p (very high quality)
-    /// - 22 for 1080p (high quality)
-    /// - 23 for <1080p (high quality)
+    /// - 18 for ≥2160p (near-lossless)
+    /// - 19 for 1440p
+    /// - 20 for 1080p
+    /// - 21 for <1080p
     /// No bitrate adjustment - prioritize quality over size
     #[test]
     fn prop_crf_selection_by_resolution(
@@ -31,18 +31,10 @@ proptest! {
         let crf = select_crf(height, bitrate, quality_tier);
 
         // Determine expected CRF based on height (no bitrate adjustment)
-        let base_crf = if height >= 2160 {
-            20
-        } else if height >= 1440 {
-            21
-        } else if height >= 1080 {
-            22
-        } else {
-            23
-        };
+        let base_crf = if height >= 2160 { 18 } else if height >= 1440 { 19 } else if height >= 1080 { 20 } else { 21 };
         let expected_crf = match quality_tier {
             QualityTier::High => base_crf,
-            QualityTier::VeryHigh => base_crf.saturating_sub(1),
+            QualityTier::VeryHigh => base_crf.saturating_sub(2),
         };
 
         prop_assert_eq!(crf, expected_crf,
@@ -55,10 +47,10 @@ proptest! {
     ///
     /// For any video height and quality tier, the system should select the
     /// appropriate SVT-AV1 preset value (ultra-slow for maximum quality):
-    /// - Preset 2 for ≥2160p (very slow, very high quality)
-    /// - Preset 3 for 1440p and 1080p (slow, high quality)
-    /// - Preset 4 for <1080p (moderate speed, high quality)
-    /// With quality tier adjustment (-1 for VeryHigh)
+    /// - Preset 1 for ≥2160p (extremely slow, max quality)
+    /// - Preset 2 for 1440p and 1080p
+    /// - Preset 3 for <1080p
+    /// With quality tier adjustment (-2 for VeryHigh)
     #[test]
     fn prop_svt_preset_selection(
         height in 480i32..4320i32,
@@ -67,20 +59,12 @@ proptest! {
         let preset = select_preset(height, quality_tier);
 
         // Determine expected base preset based on height (slower presets for quality)
-        let expected_base_preset: u8 = if height >= 2160 {
-            2
-        } else if height >= 1440 {
-            3
-        } else if height >= 1080 {
-            3
-        } else {
-            4
-        };
+        let expected_base_preset: u8 = if height >= 2160 { 1 } else if height >= 1440 { 2 } else if height >= 1080 { 2 } else { 3 };
 
-        // Apply quality tier adjustment
+        // Apply quality tier adjustment (very_high pushes 2 steps slower)
         let expected_preset = match quality_tier {
             QualityTier::High => expected_base_preset,
-            QualityTier::VeryHigh => expected_base_preset.saturating_sub(1),
+            QualityTier::VeryHigh => expected_base_preset.saturating_sub(2),
         };
 
         prop_assert_eq!(preset, expected_preset,

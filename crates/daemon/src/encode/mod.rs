@@ -169,15 +169,16 @@ pub async fn execute_encode(
 pub fn select_crf(height: i32, _bitrate: Option<u64>, quality_tier: QualityTier) -> u8 {
     // Quality-first defaults; lower CRF = higher quality (18 is near-lossless, 23 is high quality)
     let base_crf: u8 = match height {
-        h if h >= 2160 => 20, // 4K: CRF 20 (very high quality)
-        h if h >= 1440 => 21, // 1440p: CRF 21 (very high quality)
-        h if h >= 1080 => 22, // 1080p: CRF 22 (high quality)
-        _ => 23,              // 720p and below: CRF 23 (high quality)
+        h if h >= 2160 => 18, // 4K: CRF 18 (near-lossless)
+        h if h >= 1440 => 19, // 1440p: CRF 19
+        h if h >= 1080 => 20, // 1080p: CRF 20
+        _ => 21,              // 720p and below: CRF 21
     };
 
     let crf = match quality_tier {
         QualityTier::High => base_crf,
-        QualityTier::VeryHigh => base_crf.saturating_sub(1), // one step higher quality
+        // Maximum quality: 2 steps lower CRF
+        QualityTier::VeryHigh => base_crf.saturating_sub(2),
     };
 
     // Don't increase CRF for low bitrate sources - maintain quality
@@ -189,15 +190,16 @@ pub fn select_preset(height: i32, quality_tier: QualityTier) -> u8 {
     // Ultra-slow presets for maximum quality
     // Lower preset = slower but higher quality (0 is slowest/best, 13 is fastest/worst)
     let base_preset = match height {
-        h if h >= 2160 => 2, // 4K: Preset 2 (very slow, very high quality)
-        h if h >= 1440 => 3, // 1440p: Preset 3 (slow, high quality)
-        h if h >= 1080 => 3, // 1080p: Preset 3 (slow, high quality)
-        _ => 4,              // 720p and below: Preset 4 (moderate speed, high quality)
+        h if h >= 2160 => 1, // 4K: Preset 1 (extremely slow, max quality)
+        h if h >= 1440 => 2, // 1440p: Preset 2
+        h if h >= 1080 => 2, // 1080p: Preset 2
+        _ => 3,              // 720p and below: Preset 3
     };
 
     match quality_tier {
         QualityTier::High => base_preset,
-        QualityTier::VeryHigh => base_preset.saturating_sub(1), // Even slower for VeryHigh
+        // Maximum quality: 2 steps slower for VeryHigh (clamped at 0)
+        QualityTier::VeryHigh => base_preset.saturating_sub(2),
     }
 }
 

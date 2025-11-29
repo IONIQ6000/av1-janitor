@@ -1434,18 +1434,23 @@ impl App {
                         self.get_temp_output_path(&job.id),
                         job.original_bytes.unwrap_or(0),
                     );
-                    // Blend daemon percent with a size-based percent to avoid over-reporting
-                    let mut pct = job.progress.unwrap_or(0.0).clamp(0.0, 100.0);
-                    if let Some(bytes) = job.encoded_bytes {
-                        if let Some(est) = job.output_est_bytes.or(job.original_bytes) {
-                            if est > 0 {
-                                let size_pct =
-                                    (bytes as f64 / est as f64 * 100.0).clamp(0.0, 100.0);
-                                // Take the safer (lower) signal; allow size to pull us down
-                                pct = pct.min(size_pct.max(pct * 0.5));
-                            }
-                        }
+                    let bytes = job.encoded_bytes.unwrap_or(0);
+                    let est_final = job
+                        .output_est_bytes
+                        .or(job.original_bytes)
+                        .unwrap_or_else(|| bytes.saturating_add(1));
+
+                    // Compute progress primarily from bytes so we don't over-report
+                    let mut pct = if est_final > 0 {
+                        (bytes as f64 / est_final as f64 * 100.0).clamp(0.0, 100.0)
+                    } else {
+                        0.0
+                    };
+                    // If daemon reported a lower percent, respect that floor
+                    if let Some(daemon_pct) = job.progress {
+                        pct = pct.min(daemon_pct.clamp(0.0, 100.0));
                     }
+
                     // Do not show 100% unless daemon marks complete
                     progress.progress_percent =
                         if matches!(job.stage, Some(av1d_daemon::jobs::JobStage::Complete)) {
@@ -1453,14 +1458,21 @@ impl App {
                         } else {
                             pct.min(99.9)
                         };
-                    progress.estimated_completion = if progress.progress_percent >= 99.0 {
-                        None
+
+                    // ETA based on remaining bytes and speed
+                    let bps = job.speed_bps.unwrap_or(0.0);
+                    progress.bytes_per_second = bps;
+                    if bps > 0.0 && bytes < est_final && progress.progress_percent < 99.0 {
+                        let remaining = est_final.saturating_sub(bytes);
+                        let seconds = remaining as f64 / bps;
+                        progress.estimated_completion =
+                            Some(Utc::now() + chrono::Duration::seconds(seconds as i64));
                     } else {
-                        job.eta
-                    };
-                    progress.estimated_final_size = job.output_est_bytes;
-                    progress.temp_file_size = job.encoded_bytes.unwrap_or(0);
-                    progress.bytes_per_second = job.speed_bps.unwrap_or(0.0);
+                        progress.estimated_completion = None;
+                    }
+
+                    progress.estimated_final_size = Some(est_final);
+                    progress.temp_file_size = bytes;
                     progress.stage = match job.stage {
                         Some(av1d_daemon::jobs::JobStage::Probing) => JobStage::Probing,
                         Some(av1d_daemon::jobs::JobStage::Encoding) => JobStage::Transcoding,
