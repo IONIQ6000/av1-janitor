@@ -1434,8 +1434,30 @@ impl App {
                         self.get_temp_output_path(&job.id),
                         job.original_bytes.unwrap_or(0),
                     );
-                    progress.progress_percent = job.progress.unwrap_or(0.0).clamp(0.0, 100.0);
-                    progress.estimated_completion = job.eta;
+                    // Blend daemon percent with a size-based percent to avoid over-reporting
+                    let mut pct = job.progress.unwrap_or(0.0).clamp(0.0, 100.0);
+                    if let Some(bytes) = job.encoded_bytes {
+                        if let Some(est) = job.output_est_bytes.or(job.original_bytes) {
+                            if est > 0 {
+                                let size_pct =
+                                    (bytes as f64 / est as f64 * 100.0).clamp(0.0, 100.0);
+                                // Take the safer (lower) signal; allow size to pull us down
+                                pct = pct.min(size_pct.max(pct * 0.5));
+                            }
+                        }
+                    }
+                    // Do not show 100% unless daemon marks complete
+                    progress.progress_percent =
+                        if matches!(job.stage, Some(av1d_daemon::jobs::JobStage::Complete)) {
+                            100.0
+                        } else {
+                            pct.min(99.9)
+                        };
+                    progress.estimated_completion = if progress.progress_percent >= 99.0 {
+                        None
+                    } else {
+                        job.eta
+                    };
                     progress.estimated_final_size = job.output_est_bytes;
                     progress.temp_file_size = job.encoded_bytes.unwrap_or(0);
                     progress.bytes_per_second = job.speed_bps.unwrap_or(0.0);
