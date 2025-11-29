@@ -310,6 +310,14 @@ fn job_strategy() -> impl Strategy<Value = Job> {
                     quality_tier: None,
                     test_clip_path: None,
                     test_clip_approved: None,
+                    stage: None,
+                    encoded_bytes: None,
+                    encoded_duration: None,
+                    progress: None,
+                    eta: None,
+                    output_est_bytes: None,
+                    speed_bps: None,
+                    original_duration: None,
                 }
             },
         )

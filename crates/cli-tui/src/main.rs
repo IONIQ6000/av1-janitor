@@ -6,11 +6,7 @@ mod metadata;
 mod models;
 
 use humansize::{format_size, DECIMAL};
-use metadata::{
-    format_codec, format_missing_metadata, format_optional, format_percentage_optional,
-    format_size_optional, get_missing_metadata_fields, has_complete_video_metadata,
-    has_estimation_metadata,
-};
+use metadata::has_estimation_metadata;
 use models::{load_all_jobs, Job, JobStatus, TranscodeConfig};
 use ratatui::{
     backend::CrosstermBackend,
@@ -1432,6 +1428,29 @@ impl App {
         // Update progress tracking for all running jobs by cloning necessary data
         for job_id in &running_job_ids {
             if let Some(job) = self.jobs.iter().find(|j| j.id == *job_id).cloned() {
+                // If daemon provided live progress, prefer it
+                if job.progress.is_some() || job.encoded_bytes.is_some() || job.stage.is_some() {
+                    let mut progress = JobProgress::new(
+                        self.get_temp_output_path(&job.id),
+                        job.original_bytes.unwrap_or(0),
+                    );
+                    progress.progress_percent = job.progress.unwrap_or(0.0).clamp(0.0, 100.0);
+                    progress.estimated_completion = job.eta;
+                    progress.estimated_final_size = job.output_est_bytes;
+                    progress.temp_file_size = job.encoded_bytes.unwrap_or(0);
+                    progress.bytes_per_second = job.speed_bps.unwrap_or(0.0);
+                    progress.stage = match job.stage {
+                        Some(av1d_daemon::jobs::JobStage::Probing) => JobStage::Probing,
+                        Some(av1d_daemon::jobs::JobStage::Encoding) => JobStage::Transcoding,
+                        Some(av1d_daemon::jobs::JobStage::Verifying) => JobStage::Verifying,
+                        Some(av1d_daemon::jobs::JobStage::Replacing) => JobStage::Replacing,
+                        Some(av1d_daemon::jobs::JobStage::Complete) => JobStage::Complete,
+                        None => JobStage::Transcoding,
+                    };
+                    self.job_progress.insert(job.id.clone(), progress);
+                    continue;
+                }
+
                 let temp_output = self.get_temp_output_path(&job.id);
                 let original_size = job.original_bytes.unwrap_or(0);
                 let total_duration = self.get_source_duration_secs(&job);
@@ -2123,16 +2142,22 @@ fn render_current_job(f: &mut Frame, app: &App, area: Rect) {
             "Starting"
         };
 
-        // Progress percentage
+        // Progress percentage (clamped; don't show 100% unless complete)
         let progress_pct = if let Some(prog) = progress {
-            prog.progress_percent
+            if prog.stage == JobStage::Complete {
+                100.0
+            } else {
+                prog.progress_percent.min(99.9).max(0.0)
+            }
         } else {
             0.0
         };
 
         // ETA
         let eta_str = if let Some(prog) = progress {
-            if let Some(eta) = prog.estimated_completion {
+            if prog.bytes_per_second <= 0.0 || prog.progress_percent >= 99.0 {
+                "-".to_string()
+            } else if let Some(eta) = prog.estimated_completion {
                 let remaining = (eta - Utc::now()).num_seconds();
                 if remaining > 0 {
                     let hours = remaining / 3600;

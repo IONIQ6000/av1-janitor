@@ -4,11 +4,13 @@ pub mod rav1e;
 pub mod svt;
 
 use crate::config::{DaemonConfig, QualityTier};
-use crate::jobs::Job;
+use crate::jobs::{save_job, Job, JobStage};
 use crate::startup::SelectedEncoder;
 use anyhow::Result;
+use chrono::{Duration as ChronoDuration, Utc};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 
 pub fn build_command(
@@ -35,7 +37,11 @@ pub fn build_command(
     }
 }
 
-pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<PathBuf> {
+pub async fn execute_encode(
+    job: &mut Job,
+    command: Vec<String>,
+    job_state_dir: &std::path::Path,
+) -> Result<PathBuf> {
     use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::process::Command;
 
@@ -45,23 +51,24 @@ pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<Path
         .ok_or_else(|| anyhow::anyhow!("Command has no output path"))?
         .clone();
 
-    // Build the command
+    // Build the command with progress reporting
     let mut cmd = Command::new("ffmpeg");
-    for arg in &command[1..] {
-        // Skip "ffmpeg" itself
+    for arg in ["-progress", "pipe:1", "-nostats"]
+        .iter()
+        .map(|s| *s)
+        .chain(command[1..].iter().map(|s| s.as_str()))
+    {
         cmd.arg(arg);
     }
 
-    // Capture stdout and stderr
+    // Capture stdout (progress) and stderr (errors)
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
 
-    // Spawn the process
     let mut child = cmd
         .spawn()
         .map_err(|e| anyhow::anyhow!("Failed to spawn ffmpeg: {}", e))?;
 
-    // Get handles to stdout and stderr
     let stdout = child
         .stdout
         .take()
@@ -71,17 +78,7 @@ pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<Path
         .take()
         .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr"))?;
 
-    // Spawn tasks to read stdout and stderr
-    let stdout_task = tokio::spawn(async move {
-        let reader = BufReader::new(stdout);
-        let mut lines = reader.lines();
-        let mut output = Vec::new();
-        while let Ok(Some(line)) = lines.next_line().await {
-            output.push(line);
-        }
-        output
-    });
-
+    // Collect stderr for diagnostics
     let stderr_task = tokio::spawn(async move {
         let reader = BufReader::new(stderr);
         let mut lines = reader.lines();
@@ -92,21 +89,71 @@ pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<Path
         output
     });
 
-    // Wait for the process to complete
+    // Progress parsing loop
+    let mut reader = BufReader::new(stdout).lines();
+    let mut total_size_bytes: Option<u64> = None;
+    let mut out_time_secs: Option<f64> = None;
+    let mut speed_x: Option<f64> = None;
+    let mut last_save = Instant::now()
+        .checked_sub(Duration::from_millis(750))
+        .unwrap_or_else(Instant::now);
+
+    job.stage = Some(JobStage::Encoding);
+    save_job(job, job_state_dir)?;
+
+    while let Some(line) = reader.next_line().await? {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some((k, v)) = trimmed.split_once('=') {
+            match k {
+                "out_time_ms" => {
+                    if let Ok(ms) = v.parse::<u64>() {
+                        out_time_secs = Some(ms as f64 / 1_000_000.0);
+                    }
+                }
+                "out_time" => {
+                    if out_time_secs.is_none() {
+                        out_time_secs = parse_out_time(v);
+                    }
+                }
+                "total_size" => {
+                    if let Ok(sz) = v.parse::<u64>() {
+                        total_size_bytes = Some(sz);
+                    }
+                }
+                "speed" => {
+                    let clean = v.trim_end_matches('x');
+                    if let Ok(s) = clean.parse::<f64>() {
+                        speed_x = Some(s);
+                    }
+                }
+                "progress" if v == "end" => break,
+                _ => {}
+            }
+        }
+
+        if last_save.elapsed() >= Duration::from_millis(750) {
+            update_job_progress(job, out_time_secs, total_size_bytes, speed_x, job_state_dir)?;
+            last_save = Instant::now();
+        }
+    }
+
+    // Final progress update and mark verifying
+    update_job_progress(job, out_time_secs, total_size_bytes, speed_x, job_state_dir)?;
+    job.stage = Some(JobStage::Verifying);
+    save_job(job, job_state_dir)?;
+
     let status = child
         .wait()
         .await
         .map_err(|e| anyhow::anyhow!("Failed to wait for ffmpeg: {}", e))?;
 
-    // Collect output
-    let stdout_lines = stdout_task
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to read stdout: {}", e))?;
     let stderr_lines = stderr_task
         .await
         .map_err(|e| anyhow::anyhow!("Failed to read stderr: {}", e))?;
 
-    // Check if the process succeeded
     if !status.success() {
         let error_msg = format!(
             "FFmpeg failed with exit code: {:?}\nStderr:\n{}",
@@ -114,14 +161,6 @@ pub async fn execute_encode(_job: &mut Job, command: Vec<String>) -> Result<Path
             stderr_lines.join("\n")
         );
         return Err(anyhow::anyhow!(error_msg));
-    }
-
-    // Log output for debugging (optional)
-    if !stdout_lines.is_empty() {
-        tracing::debug!("FFmpeg stdout: {}", stdout_lines.join("\n"));
-    }
-    if !stderr_lines.is_empty() {
-        tracing::debug!("FFmpeg stderr: {}", stderr_lines.join("\n"));
     }
 
     Ok(PathBuf::from(output_path))
@@ -160,6 +199,67 @@ pub fn select_preset(height: i32, quality_tier: QualityTier) -> u8 {
         QualityTier::High => base_preset,
         QualityTier::VeryHigh => base_preset.saturating_sub(1), // Even slower for VeryHigh
     }
+}
+
+fn parse_out_time(val: &str) -> Option<f64> {
+    let parts: Vec<&str> = val.split(':').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let h = parts.get(0)?.parse::<f64>().ok()?;
+    let m = parts.get(1)?.parse::<f64>().ok()?;
+    let s = parts.get(2)?.parse::<f64>().ok()?;
+    Some(h * 3600.0 + m * 60.0 + s)
+}
+
+fn update_job_progress(
+    job: &mut Job,
+    out_time_secs: Option<f64>,
+    total_size_bytes: Option<u64>,
+    speed_x: Option<f64>,
+    job_state_dir: &std::path::Path,
+) -> Result<()> {
+    if let Some(sz) = total_size_bytes {
+        job.encoded_bytes = Some(sz);
+    }
+    if let Some(ots) = out_time_secs {
+        job.encoded_duration = Some(ots);
+    }
+
+    if let (Some(ots), Some(total_dur)) = (out_time_secs, job.original_duration) {
+        if total_dur > 0.0 {
+            let pct = (ots / total_dur * 100.0).clamp(0.0, 100.0);
+            job.progress = Some(pct);
+        }
+    }
+
+    if let (Some(ots), Some(total_dur), Some(speed)) =
+        (out_time_secs, job.original_duration, speed_x)
+    {
+        if speed > 0.0 && total_dur > ots {
+            let remaining = (total_dur - ots).max(0.0);
+            let seconds_left = remaining / speed;
+            job.eta =
+                Some(Utc::now() + ChronoDuration::milliseconds((seconds_left * 1000.0) as i64));
+        } else {
+            job.eta = None;
+        }
+        if let Some(bytes) = job.encoded_bytes {
+            if ots > 0.0 {
+                job.speed_bps = Some((bytes as f64) / ots);
+            }
+        }
+    }
+
+    if let (Some(bytes), Some(pct)) = (job.encoded_bytes, job.progress) {
+        if pct > 0.1 {
+            let est = (bytes as f64 / (pct / 100.0)) as u64;
+            job.output_est_bytes = Some(est);
+        }
+    }
+
+    save_job(job, job_state_dir)?;
+    Ok(())
 }
 
 /// JobExecutor manages concurrent encoding jobs with a configurable limit
@@ -209,13 +309,19 @@ impl JobExecutor {
     }
 
     /// Execute an encoding job with concurrency limiting
-    pub async fn execute_encode_job(&self, job: &mut Job, command: Vec<String>) -> Result<PathBuf> {
+    pub async fn execute_encode_job(
+        &self,
+        job: &mut Job,
+        command: Vec<String>,
+        job_state_dir: &std::path::Path,
+    ) -> Result<PathBuf> {
         let command_clone = command.clone();
         let job_clone = job.clone();
+        let state_dir = job_state_dir.to_path_buf();
 
         self.execute_job(|| async move {
             let mut job_mut = job_clone;
-            execute_encode(&mut job_mut, command_clone).await
+            execute_encode(&mut job_mut, command_clone, &state_dir).await
         })
         .await
     }

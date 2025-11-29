@@ -201,7 +201,8 @@ async fn process_candidate(
         .execute_job(|| {
             let cmd = command.clone();
             let mut job_clone = job.clone();
-            async move { execute_encode(&mut job_clone, cmd).await }
+            let state_dir = config.job_state_dir.clone();
+            async move { execute_encode(&mut job_clone, cmd, &state_dir).await }
         })
         .await;
 
@@ -317,6 +318,7 @@ async fn process_candidate(
     match atomic_replace(path, &encoded_path, config.keep_original) {
         Ok(()) => {
             info!("Successfully replaced {:?}", path);
+            job.stage = Some(crate::jobs::JobStage::Complete);
             update_job_status(&mut job, JobStatus::Success, &config.job_state_dir)?;
         }
         Err(e) => {

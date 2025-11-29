@@ -61,6 +61,25 @@ pub struct Job {
     pub test_clip_path: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub test_clip_approved: Option<bool>,
+
+    // Live progress (optional; populated during encode)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stage: Option<JobStage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encoded_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encoded_duration: Option<f64>, // seconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<f64>, // percent 0-100
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub eta: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_est_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed_bps: Option<f64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_duration: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,6 +90,17 @@ pub enum JobStatus {
     Success,
     Failed,
     Skipped,
+}
+
+/// Live stage for UI progress; optional and best-effort
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JobStage {
+    Probing,
+    Encoding,
+    Verifying,
+    Replacing,
+    Complete,
 }
 
 pub fn create_job(
@@ -123,6 +153,14 @@ pub fn create_job(
         quality_tier: None,
         test_clip_path: None,
         test_clip_approved: None,
+        stage: None,
+        encoded_bytes: None,
+        encoded_duration: None,
+        progress: None,
+        eta: None,
+        output_est_bytes: None,
+        speed_bps: None,
+        original_duration: probe.format.duration,
     }
 }
 
