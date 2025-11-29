@@ -1496,19 +1496,7 @@ impl App {
                                         );
                                     }
 
-                                    if let Some(speed_x) = progress.encode_speed_x {
-                                        if speed_x > 0.0 && total_duration > encoded_duration {
-                                            let remaining_input =
-                                                (total_duration - encoded_duration).max(0.0);
-                                            let seconds_remaining = remaining_input / speed_x;
-                                            use chrono::Duration as ChronoDuration;
-                                            progress.estimated_completion = Some(
-                                                now + ChronoDuration::seconds(
-                                                    seconds_remaining.ceil() as i64,
-                                                ),
-                                            );
-                                        }
-                                    }
+                                    // ETA will be calculated later using bytes/sec or speed_x
                                 }
                             }
                         }
@@ -1524,23 +1512,40 @@ impl App {
                                 None
                             }
                         })
-                        .unwrap_or(0);
+                        .unwrap_or(0)
+                        .max(current_temp_size + 1); // ensure progress math has a floor
 
-                    if estimated_output_size > 0 && progress.last_probe_duration.is_none() {
-                        progress.progress_percent =
-                            (current_temp_size as f64 / estimated_output_size as f64 * 100.0)
-                                .clamp(0.0, 100.0);
+                    // Blend duration-based and size-based progress; use the most conservative (lower) signal
+                    let size_progress_pct = if estimated_output_size > 0 && current_temp_size > 0 {
+                        (current_temp_size as f64 / estimated_output_size as f64 * 100.0)
+                            .clamp(0.0, 100.0)
+                    } else {
+                        0.0
+                    };
+                    if let (Some(encoded_duration), Some(total_duration)) =
+                        (progress.last_probe_duration, total_duration)
+                    {
+                        let duration_progress_pct =
+                            (encoded_duration / total_duration * 100.0).clamp(0.0, 100.0);
+                        // Take the minimum to avoid overestimating when headers report full duration early
+                        let blended = duration_progress_pct
+                            .min(size_progress_pct.max(duration_progress_pct * 0.5));
+                        progress.progress_percent = blended;
+                    } else if estimated_output_size > 0 {
+                        progress.progress_percent = size_progress_pct;
                     }
 
                     if progress.bytes_per_second > 0.0
                         && estimated_output_size > current_temp_size
-                        && progress.estimated_completion.is_none()
+                        && progress.progress_percent < 99.5
                     {
                         use chrono::Duration as ChronoDuration;
                         let remaining_bytes = estimated_output_size - current_temp_size;
                         let seconds_remaining = remaining_bytes as f64 / progress.bytes_per_second;
                         progress.estimated_completion =
                             Some(now + ChronoDuration::seconds(seconds_remaining as i64));
+                    } else {
+                        progress.estimated_completion = None;
                     }
 
                     // Store estimated final size (Task 13.2)
@@ -1583,11 +1588,12 @@ impl App {
                         }
                     }
 
-                    progress.stage = if progress.progress_percent > 95.0 {
-                        JobStage::Verifying
-                    } else {
-                        JobStage::Transcoding
-                    };
+                    progress.stage =
+                        if progress.progress_percent > 99.0 && progress.bytes_per_second < 1024.0 {
+                            JobStage::Verifying
+                        } else {
+                            JobStage::Transcoding
+                        };
 
                     self.job_progress.insert(job_id.clone(), progress);
                 } else {
