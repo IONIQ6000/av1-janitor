@@ -23,11 +23,7 @@ pub enum SkipReason {
 /// 2. No video streams
 /// 3. File size too small
 /// 4. Already encoded in AV1
-pub fn check_gates(
-    file: &CandidateFile,
-    probe: &ProbeResult,
-    config: &DaemonConfig,
-) -> GateResult {
+pub fn check_gates(file: &CandidateFile, probe: &ProbeResult, config: &DaemonConfig) -> GateResult {
     // Gate 1: Check for skip marker
     if has_skip_marker(&file.path) {
         return GateResult::Skip(SkipReason::HasSkipMarker);

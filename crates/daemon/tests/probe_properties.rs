@@ -1,4 +1,6 @@
-use av1d_daemon::probe::{select_main_video_stream, VideoStream, ProbeResult, FormatInfo, AudioStream, SubtitleStream};
+use av1d_daemon::probe::{
+    select_main_video_stream, AudioStream, FormatInfo, ProbeResult, SubtitleStream, VideoStream,
+};
 use proptest::prelude::*;
 use serde_json::json;
 
@@ -28,7 +30,7 @@ fn property_ffprobe_json_parsing() {
     )| {
         // Generate FFprobe JSON output structure
         let mut streams = Vec::new();
-        
+
         // Add video streams
         for i in 0..num_video_streams {
             let is_default = has_default_stream && i == 0;
@@ -42,7 +44,7 @@ fn property_ffprobe_json_parsing() {
                     "default": if is_default { 1 } else { 0 }
                 }
             });
-            
+
             if let Some(br) = video_bitrate {
                 stream["bit_rate"] = json!(br.to_string());
             }
@@ -55,73 +57,73 @@ fn property_ffprobe_json_parsing() {
             if let Some(bd) = bit_depth {
                 stream["bits_per_raw_sample"] = json!(bd.to_string());
             }
-            
+
             streams.push(stream);
         }
-        
+
         // Add audio streams
         for i in 0..num_audio_streams {
             let audio_codec = if i % 2 == 0 { "aac" } else { "ac3" };
             let language = if i % 3 == 0 { Some("eng") } else { None };
-            
+
             let mut stream = json!({
                 "index": num_video_streams + i,
                 "codec_type": "audio",
                 "codec_name": audio_codec,
             });
-            
+
             if let Some(lang) = language {
                 stream["tags"] = json!({ "language": lang });
             }
-            
+
             streams.push(stream);
         }
-        
+
         // Add subtitle streams
         for i in 0..num_subtitle_streams {
             let language = if i % 2 == 0 { Some("eng") } else { Some("spa") };
-            
+
             let mut stream = json!({
                 "index": num_video_streams + num_audio_streams + i,
                 "codec_type": "subtitle",
                 "codec_name": "subrip",
             });
-            
+
             if let Some(lang) = language {
                 stream["tags"] = json!({ "language": lang });
             }
-            
+
             streams.push(stream);
         }
-        
+
         let mut format_json = json!({
             "size": size.to_string(),
         });
-        
+
         if let Some(dur) = duration {
             format_json["duration"] = json!(dur.to_string());
         }
         if let Some(br) = bitrate {
             format_json["bit_rate"] = json!(br.to_string());
         }
-        
+
         let ffprobe_json = json!({
             "format": format_json,
             "streams": streams
         });
-        
+
         // Parse the JSON using our helper function (simulates internal parsing)
         let parsed = parse_test_json(ffprobe_json).unwrap();
-        
+
         // Verify format information
         prop_assert_eq!(parsed.format.duration, duration, "Duration should match");
         prop_assert_eq!(parsed.format.size, size, "Size should match");
         prop_assert_eq!(parsed.format.bitrate, bitrate, "Bitrate should match");
-        
+
         // Verify video streams
-        prop_assert_eq!(parsed.video_streams.len(), num_video_streams, 
+        prop_assert_eq!(parsed.video_streams.len(), num_video_streams,
             "Should have {} video streams", num_video_streams);
-        
+
         for (i, stream) in parsed.video_streams.iter().enumerate() {
             prop_assert_eq!(stream.index, i, "Video stream index should match");
             prop_assert_eq!(&stream.codec_name, video_codec, "Video codec should match");
@@ -131,18 +133,18 @@ fn property_ffprobe_json_parsing() {
             prop_assert_eq!(&stream.frame_rate, &frame_rate.map(|s| s.to_string()), "Frame rate should match");
             prop_assert_eq!(&stream.pix_fmt, &pix_fmt.map(|s| s.to_string()), "Pixel format should match");
             prop_assert_eq!(stream.bit_depth, bit_depth, "Bit depth should match");
-            
+
             if has_default_stream && i == 0 {
                 prop_assert!(stream.is_default, "First stream should be default");
             } else {
                 prop_assert!(!stream.is_default, "Non-first streams should not be default");
             }
         }
-        
+
         // Verify audio streams
         prop_assert_eq!(parsed.audio_streams.len(), num_audio_streams,
             "Should have {} audio streams", num_audio_streams);
-        
+
         // Verify subtitle streams
         prop_assert_eq!(parsed.subtitle_streams.len(), num_subtitle_streams,
             "Should have {} subtitle streams", num_subtitle_streams);
@@ -153,17 +155,20 @@ fn property_ffprobe_json_parsing() {
 fn parse_test_json(value: serde_json::Value) -> Result<ProbeResult, serde_json::Error> {
     let format_obj = value.get("format").and_then(|f| f.as_object());
     let streams_arr = value.get("streams").and_then(|s| s.as_array());
-    
+
     let format = if let Some(fmt) = format_obj {
         FormatInfo {
-            duration: fmt.get("duration")
+            duration: fmt
+                .get("duration")
                 .and_then(|d| d.as_str())
                 .and_then(|s| s.parse::<f64>().ok()),
-            size: fmt.get("size")
+            size: fmt
+                .get("size")
                 .and_then(|s| s.as_str())
                 .and_then(|s| s.parse::<u64>().ok())
                 .unwrap_or(0),
-            bitrate: fmt.get("bit_rate")
+            bitrate: fmt
+                .get("bit_rate")
                 .and_then(|b| b.as_str())
                 .and_then(|s| s.parse::<u64>().ok()),
         }
@@ -174,41 +179,53 @@ fn parse_test_json(value: serde_json::Value) -> Result<ProbeResult, serde_json::
             bitrate: None,
         }
     };
-    
+
     let mut video_streams = Vec::new();
     let mut audio_streams = Vec::new();
     let mut subtitle_streams = Vec::new();
-    
+
     if let Some(streams) = streams_arr {
         for stream in streams {
-            let codec_type = stream.get("codec_type").and_then(|c| c.as_str()).unwrap_or("");
+            let codec_type = stream
+                .get("codec_type")
+                .and_then(|c| c.as_str())
+                .unwrap_or("");
             let index = stream.get("index").and_then(|i| i.as_u64()).unwrap_or(0) as usize;
-            let codec_name = stream.get("codec_name").and_then(|c| c.as_str()).unwrap_or("").to_string();
-            
+            let codec_name = stream
+                .get("codec_name")
+                .and_then(|c| c.as_str())
+                .unwrap_or("")
+                .to_string();
+
             match codec_type {
                 "video" => {
                     if let (Some(width), Some(height)) = (
                         stream.get("width").and_then(|w| w.as_i64()),
-                        stream.get("height").and_then(|h| h.as_i64())
+                        stream.get("height").and_then(|h| h.as_i64()),
                     ) {
                         video_streams.push(VideoStream {
                             index,
                             codec_name,
                             width: width as i32,
                             height: height as i32,
-                            bitrate: stream.get("bit_rate")
+                            bitrate: stream
+                                .get("bit_rate")
                                 .and_then(|b| b.as_str())
                                 .and_then(|s| s.parse::<u64>().ok()),
-                            frame_rate: stream.get("r_frame_rate")
+                            frame_rate: stream
+                                .get("r_frame_rate")
                                 .and_then(|f| f.as_str())
                                 .map(|s| s.to_string()),
-                            pix_fmt: stream.get("pix_fmt")
+                            pix_fmt: stream
+                                .get("pix_fmt")
                                 .and_then(|p| p.as_str())
                                 .map(|s| s.to_string()),
-                            bit_depth: stream.get("bits_per_raw_sample")
+                            bit_depth: stream
+                                .get("bits_per_raw_sample")
                                 .and_then(|b| b.as_str())
                                 .and_then(|s| s.parse::<u8>().ok()),
-                            is_default: stream.get("disposition")
+                            is_default: stream
+                                .get("disposition")
                                 .and_then(|d| d.get("default"))
                                 .and_then(|v| v.as_i64())
                                 .map(|v| v == 1)
@@ -220,7 +237,8 @@ fn parse_test_json(value: serde_json::Value) -> Result<ProbeResult, serde_json::
                     audio_streams.push(AudioStream {
                         index,
                         codec_name,
-                        language: stream.get("tags")
+                        language: stream
+                            .get("tags")
                             .and_then(|t| t.get("language"))
                             .and_then(|l| l.as_str())
                             .map(|s| s.to_string()),
@@ -230,7 +248,8 @@ fn parse_test_json(value: serde_json::Value) -> Result<ProbeResult, serde_json::
                     subtitle_streams.push(SubtitleStream {
                         index,
                         codec_name,
-                        language: stream.get("tags")
+                        language: stream
+                            .get("tags")
                             .and_then(|t| t.get("language"))
                             .and_then(|l| l.as_str())
                             .map(|s| s.to_string()),
@@ -240,7 +259,7 @@ fn parse_test_json(value: serde_json::Value) -> Result<ProbeResult, serde_json::
             }
         }
     }
-    
+
     Ok(ProbeResult {
         format,
         video_streams,
@@ -260,10 +279,10 @@ fn property_main_video_stream_selection() {
     )| {
         // Generate video streams
         let mut streams = Vec::new();
-        
+
         for i in 0..num_streams {
             let is_default = default_index.map(|idx| idx == i && idx < num_streams).unwrap_or(false);
-            
+
             streams.push(VideoStream {
                 index: i,
                 codec_name: "h264".to_string(),
@@ -276,29 +295,29 @@ fn property_main_video_stream_selection() {
                 is_default,
             });
         }
-        
+
         // Select main stream
         let selected = select_main_video_stream(&streams);
-        
+
         // Verify selection logic
         if let Some(default_idx) = default_index {
             if default_idx < num_streams {
                 // Should select the default stream
                 prop_assert!(selected.is_some(), "Should select a stream when default exists");
-                prop_assert_eq!(selected.unwrap().index, default_idx, 
+                prop_assert_eq!(selected.unwrap().index, default_idx,
                     "Should select stream with default disposition");
-                prop_assert!(selected.unwrap().is_default, 
+                prop_assert!(selected.unwrap().is_default,
                     "Selected stream should have is_default=true");
             } else {
                 // Default index out of range, should select first stream
                 prop_assert!(selected.is_some(), "Should select first stream");
-                prop_assert_eq!(selected.unwrap().index, 0, 
+                prop_assert_eq!(selected.unwrap().index, 0,
                     "Should select first stream when no default");
             }
         } else {
             // No default stream, should select first
             prop_assert!(selected.is_some(), "Should select first stream");
-            prop_assert_eq!(selected.unwrap().index, 0, 
+            prop_assert_eq!(selected.unwrap().index, 0,
                 "Should select first stream when no default");
         }
     });
@@ -309,26 +328,27 @@ fn property_main_video_stream_selection() {
 fn test_empty_stream_list() {
     let streams: Vec<VideoStream> = Vec::new();
     let selected = select_main_video_stream(&streams);
-    assert!(selected.is_none(), "Should return None for empty stream list");
+    assert!(
+        selected.is_none(),
+        "Should return None for empty stream list"
+    );
 }
 
 /// Test stream selection with single stream
 #[test]
 fn test_single_stream() {
-    let streams = vec![
-        VideoStream {
-            index: 0,
-            codec_name: "h264".to_string(),
-            width: 1920,
-            height: 1080,
-            bitrate: Some(5_000_000),
-            frame_rate: Some("24/1".to_string()),
-            pix_fmt: Some("yuv420p".to_string()),
-            bit_depth: Some(8),
-            is_default: false,
-        }
-    ];
-    
+    let streams = vec![VideoStream {
+        index: 0,
+        codec_name: "h264".to_string(),
+        width: 1920,
+        height: 1080,
+        bitrate: Some(5_000_000),
+        frame_rate: Some("24/1".to_string()),
+        pix_fmt: Some("yuv420p".to_string()),
+        bit_depth: Some(8),
+        is_default: false,
+    }];
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
     assert_eq!(selected.unwrap().index, 0);
@@ -370,12 +390,16 @@ fn test_default_preference() {
             pix_fmt: Some("yuv420p".to_string()),
             bit_depth: Some(8),
             is_default: false,
-        }
+        },
     ];
-    
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
-    assert_eq!(selected.unwrap().index, 1, "Should select stream with default disposition");
+    assert_eq!(
+        selected.unwrap().index,
+        1,
+        "Should select stream with default disposition"
+    );
     assert!(selected.unwrap().is_default);
 }
 
@@ -404,34 +428,36 @@ fn test_first_stream_fallback() {
             pix_fmt: Some("yuv420p10le".to_string()),
             bit_depth: Some(10),
             is_default: false,
-        }
+        },
     ];
-    
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
-    assert_eq!(selected.unwrap().index, 0, "Should select first stream when no default");
+    assert_eq!(
+        selected.unwrap().index,
+        0,
+        "Should select first stream when no default"
+    );
 }
 
 /// Test parsing of various video codecs
 #[test]
 fn test_various_codecs() {
     let codecs = vec!["h264", "hevc", "vp9", "av1", "mpeg2video", "mpeg4"];
-    
+
     for codec in codecs {
-        let streams = vec![
-            VideoStream {
-                index: 0,
-                codec_name: codec.to_string(),
-                width: 1920,
-                height: 1080,
-                bitrate: Some(5_000_000),
-                frame_rate: Some("24/1".to_string()),
-                pix_fmt: Some("yuv420p".to_string()),
-                bit_depth: Some(8),
-                is_default: false,
-            }
-        ];
-        
+        let streams = vec![VideoStream {
+            index: 0,
+            codec_name: codec.to_string(),
+            width: 1920,
+            height: 1080,
+            bitrate: Some(5_000_000),
+            frame_rate: Some("24/1".to_string()),
+            pix_fmt: Some("yuv420p".to_string()),
+            bit_depth: Some(8),
+            is_default: false,
+        }];
+
         let selected = select_main_video_stream(&streams);
         assert!(selected.is_some());
         assert_eq!(selected.unwrap().codec_name, codec);

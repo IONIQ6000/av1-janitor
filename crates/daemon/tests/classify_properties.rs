@@ -4,7 +4,7 @@ use proptest::prelude::*;
 use std::path::PathBuf;
 
 /// **Feature: av1-reencoder, Property 11: Source classification scoring**
-/// *For any* file path and video metadata, the classification system should correctly score 
+/// *For any* file path and video metadata, the classification system should correctly score
 /// WebLike and DiscLike indicators and assign the appropriate classification
 /// **Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8**
 #[test]
@@ -108,8 +108,10 @@ enum BitrateType {
 
 fn path_type_strategy() -> impl Strategy<Value = PathType> {
     prop_oneof![
-        prop::sample::select(vec!["WEB", "WEBRip", "WEBDL", "WEB-DL", "NF", "AMZN", "DSNP", "HULU", "ATVP"])
-            .prop_map(|s| PathType::WebLike(s.to_string())),
+        prop::sample::select(vec![
+            "WEB", "WEBRip", "WEBDL", "WEB-DL", "NF", "AMZN", "DSNP", "HULU", "ATVP"
+        ])
+        .prop_map(|s| PathType::WebLike(s.to_string())),
         prop::sample::select(vec!["BluRay", "Blu-ray", "Remux", "BDMV", "UHD"])
             .prop_map(|s| PathType::DiscLike(s.to_string())),
         Just(PathType::Neutral),
@@ -118,10 +120,10 @@ fn path_type_strategy() -> impl Strategy<Value = PathType> {
 
 fn resolution_strategy() -> impl Strategy<Value = (i32, i32)> {
     prop_oneof![
-        Just((1920, 1080)),  // 1080p
-        Just((3840, 2160)),  // 2160p (4K)
-        Just((2560, 1440)),  // 1440p
-        Just((1280, 720)),   // 720p
+        Just((1920, 1080)), // 1080p
+        Just((3840, 2160)), // 2160p (4K)
+        Just((2560, 1440)), // 1440p
+        Just((1280, 720)),  // 720p
     ]
 }
 
@@ -145,33 +147,33 @@ fn codec_strategy() -> impl Strategy<Value = String> {
 
 fn file_size_strategy() -> impl Strategy<Value = f64> {
     prop_oneof![
-        (1.0..10.0),   // Small files (1-10 GB)
-        (10.0..20.0),  // Medium files (10-20 GB)
-        (20.0..50.0),  // Large files (20-50 GB)
+        (1.0..10.0),  // Small files (1-10 GB)
+        (10.0..20.0), // Medium files (10-20 GB)
+        (20.0..50.0), // Large files (20-50 GB)
     ]
 }
 
 fn calculate_low_bitrate(height: i32) -> u64 {
     match height {
-        h if h >= 2160 => 8_000_000,   // 8 Mbps for 4K (below 10 Mbps threshold)
-        h if h >= 1080 => 3_000_000,   // 3 Mbps for 1080p (below 5 Mbps threshold)
-        _ => 1_000_000,                // 1 Mbps for lower resolutions
+        h if h >= 2160 => 8_000_000, // 8 Mbps for 4K (below 10 Mbps threshold)
+        h if h >= 1080 => 3_000_000, // 3 Mbps for 1080p (below 5 Mbps threshold)
+        _ => 1_000_000,              // 1 Mbps for lower resolutions
     }
 }
 
 fn calculate_medium_bitrate(height: i32) -> u64 {
     match height {
-        h if h >= 2160 => 25_000_000,  // 25 Mbps for 4K
-        h if h >= 1080 => 8_000_000,   // 8 Mbps for 1080p
-        _ => 3_000_000,                // 3 Mbps for lower resolutions
+        h if h >= 2160 => 25_000_000, // 25 Mbps for 4K
+        h if h >= 1080 => 8_000_000,  // 8 Mbps for 1080p
+        _ => 3_000_000,               // 3 Mbps for lower resolutions
     }
 }
 
 fn calculate_high_bitrate(height: i32) -> u64 {
     match height {
-        h if h >= 2160 => 50_000_000,  // 50 Mbps for 4K (above 40 Mbps threshold)
-        h if h >= 1080 => 20_000_000,  // 20 Mbps for 1080p (above 15 Mbps threshold)
-        _ => 10_000_000,               // 10 Mbps for lower resolutions
+        h if h >= 2160 => 50_000_000, // 50 Mbps for 4K (above 40 Mbps threshold)
+        h if h >= 1080 => 20_000_000, // 20 Mbps for 1080p (above 15 Mbps threshold)
+        _ => 10_000_000,              // 10 Mbps for lower resolutions
     }
 }
 
@@ -319,7 +321,10 @@ fn test_vp9_codec_scoring() {
     let path = PathBuf::from("/media/video/movie.mkv");
     let classification = classify_source(&path, &probe);
 
-    assert_eq!(classification.web_score, 5, "VP9 codec should add 5 to web score");
+    assert_eq!(
+        classification.web_score, 5,
+        "VP9 codec should add 5 to web score"
+    );
 }
 
 /// Test that large file size increases disc score
@@ -351,7 +356,10 @@ fn test_large_file_size_scoring() {
     let classification = classify_source(&path, &probe);
 
     // Should get +5 for high bitrate (>15 Mbps for 1080p) and +5 for large file (>20GB)
-    assert_eq!(classification.disc_score, 10, "Large file (>20GB) and high bitrate should add 10 to disc score");
+    assert_eq!(
+        classification.disc_score, 10,
+        "Large file (>20GB) and high bitrate should add 10 to disc score"
+    );
 }
 
 /// Test combined scoring: WebLike path + low bitrate
@@ -466,7 +474,12 @@ fn test_2160p_bitrate_thresholds() {
 }
 
 /// Helper function to create a minimal ProbeResult for testing
-fn create_minimal_probe(width: i32, height: i32, bitrate: Option<u64>, file_size_gb: f64) -> ProbeResult {
+fn create_minimal_probe(
+    width: i32,
+    height: i32,
+    bitrate: Option<u64>,
+    file_size_gb: f64,
+) -> ProbeResult {
     let file_size_bytes = (file_size_gb * 1024.0 * 1024.0 * 1024.0) as u64;
     ProbeResult {
         format: FormatInfo {

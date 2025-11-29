@@ -1,5 +1,5 @@
+use crate::probe::{select_main_video_stream, ProbeResult};
 use std::path::Path;
-use crate::probe::{ProbeResult, select_main_video_stream};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceType {
@@ -27,10 +27,9 @@ pub fn classify_source(path: &Path, probe: &ProbeResult) -> SourceClassification
 
     // WebLike keyword detection (+10 each)
     let web_keywords = [
-        "WEB", "WEBRIP", "WEBDL", "WEB-DL", 
-        "NF", "AMZN", "DSNP", "HULU", "ATVP"
+        "WEB", "WEBRIP", "WEBDL", "WEB-DL", "NF", "AMZN", "DSNP", "HULU", "ATVP",
     ];
-    
+
     for keyword in &web_keywords {
         if path_str.contains(keyword) {
             web_score += 10;
@@ -40,10 +39,8 @@ pub fn classify_source(path: &Path, probe: &ProbeResult) -> SourceClassification
     }
 
     // DiscLike keyword detection (+10 each)
-    let disc_keywords = [
-        "BLURAY", "BLU-RAY", "REMUX", "BDMV", "UHD"
-    ];
-    
+    let disc_keywords = ["BLURAY", "BLU-RAY", "REMUX", "BDMV", "UHD"];
+
     for keyword in &disc_keywords {
         if path_str.contains(keyword) {
             disc_score += 10;
@@ -55,7 +52,7 @@ pub fn classify_source(path: &Path, probe: &ProbeResult) -> SourceClassification
     // Get main video stream for bitrate analysis
     if let Some(video_stream) = select_main_video_stream(&probe.video_streams) {
         let height = video_stream.height;
-        
+
         // Determine bitrate to use (prefer stream bitrate, fall back to format bitrate)
         let bitrate = video_stream.bitrate.or(probe.format.bitrate);
 

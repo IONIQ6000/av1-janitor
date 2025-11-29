@@ -58,7 +58,7 @@ min_bytes = 2147483648
 
 # Quality settings
 prefer_encoder = "svt"
-quality_tier = "high"
+quality_tier = "very_high"
 
 # Concurrency (start with 1 for quality)
 max_concurrent_jobs = 1
@@ -158,7 +158,7 @@ jq -r .status /var/lib/av1d/jobs/*.json | sort | uniq -c
 ### Encoding Quality
 
 - `prefer_encoder`: Preferred encoder - `"svt"`, `"aom"`, or `"rav1e"` (default: `"svt"`)
-- `quality_tier`: Quality level - `"high"` or `"very_high"` (default: `"high"`)
+- `quality_tier`: Quality level - `"high"` or `"very_high"` (default: `"very_high"`)
 
 **Automatic CRF Selection:**
 - 2160p (4K) and above: CRF 21
@@ -321,7 +321,7 @@ If many encodes are rejected by the size gate:
 **Optimization:**
 - Ensure `temp_output_dir` is on fast storage
 - Increase `max_concurrent_jobs` if CPU < 70% utilized
-- Consider `quality_tier = "high"` instead of `"very_high"`
+- Consider `quality_tier = "high"` instead of `"very_high"` if you need faster encodes
 
 ### TUI Not Showing Jobs
 

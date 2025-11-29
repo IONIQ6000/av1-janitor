@@ -1,45 +1,41 @@
 use anyhow::{Context, Result};
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Atomically replace the original file with the new file.
-/// 
+///
 /// This function performs the following steps:
 /// 1. Rename original to a temporary name with `.orig` suffix
 /// 2. Rename new to the original filename
 /// 3. If keep_original is false, delete the `.orig` file
 /// 4. On any error, attempt to restore the original state
-/// 
+///
 /// # Arguments
 /// * `original` - Path to the original file to be replaced
 /// * `new` - Path to the new file that will replace the original
 /// * `keep_original` - If true, preserve the `.orig` file; if false, delete it
-/// 
+///
 /// # Returns
 /// * `Ok(())` on success
 /// * `Err` if any operation fails, with attempted rollback
-pub fn atomic_replace(
-    original: &Path,
-    new: &Path,
-    keep_original: bool,
-) -> Result<()> {
+pub fn atomic_replace(original: &Path, new: &Path, keep_original: bool) -> Result<()> {
     // Validate inputs
     if !new.exists() {
         anyhow::bail!("New file does not exist: {:?}", new);
     }
-    
+
     if !original.exists() {
         anyhow::bail!("Original file does not exist: {:?}", original);
     }
-    
+
     // Generate temporary name with timestamp for uniqueness
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    
+
     let orig_backup = generate_backup_path(original, timestamp);
-    
+
     // Step 1: Rename original to backup (using sync fs to avoid spurious errors on ZFS)
     // Try rename first (fast, atomic), but fall back to copy if cross-filesystem or ZFS issues
     let _backup_created = match fs::rename(original, &orig_backup) {
@@ -47,11 +43,11 @@ pub fn atomic_replace(
         Err(e) => {
             let error_kind = e.kind();
             let raw_error = e.raw_os_error();
-            
+
             // Check if this is a cross-filesystem error (EXDEV on Linux) or ZFS read-only error (EROFS)
             let is_cross_fs = raw_error == Some(18); // EXDEV = 18
             let is_zfs_readonly = raw_error == Some(30); // EROFS = 30 (ZFS spurious read-only)
-            
+
             if is_cross_fs {
                 eprintln!("Cross-filesystem detected, using copy for backup");
                 // Fall back to copy for cross-filesystem
@@ -86,14 +82,14 @@ pub fn atomic_replace(
             } else {
                 let orig_exists = original.exists();
                 let parent_exists = orig_backup.parent().map(|p| p.exists()).unwrap_or(false);
-                
+
                 eprintln!("ERROR: Failed to rename original to backup");
                 eprintln!("  Original: {:?} (exists: {})", original, orig_exists);
                 eprintln!("  Backup: {:?}", orig_backup);
                 eprintln!("  Parent dir exists: {}", parent_exists);
                 eprintln!("  Error kind: {:?}", error_kind);
                 eprintln!("  Error: {}", e);
-                
+
                 // Check permissions
                 if let Ok(metadata) = fs::metadata(original) {
                     eprintln!("  Original permissions: {:?}", metadata.permissions());
@@ -103,7 +99,7 @@ pub fn atomic_replace(
                         eprintln!("  Parent dir permissions: {:?}", metadata.permissions());
                     }
                 }
-                
+
                 return Err(e).context(format!(
                     "Failed to rename {:?} to {:?} (kind: {:?})",
                     original, orig_backup, error_kind
@@ -111,7 +107,7 @@ pub fn atomic_replace(
             }
         }
     };
-    
+
     // Step 2: If no backup was created, use a safer two-step process
     // Otherwise, copy new to original name
     if !_backup_created {
@@ -120,11 +116,11 @@ pub fn atomic_replace(
         // 2. Delete original
         // 3. Rename temp to original name
         // This ensures we don't lose data if step 2 or 3 fails
-        
+
         eprintln!("No backup possible - using safe two-step replacement");
-        
+
         let temp_in_place = original.with_extension("av1tmp");
-        
+
         // Step 2a: Copy new file to temp location in target directory
         eprintln!("  Step 1: Copying new file to temp location");
         if let Err(e) = fs::copy(new, &temp_in_place) {
@@ -133,7 +129,7 @@ pub fn atomic_replace(
                 new, temp_in_place
             ));
         }
-        
+
         // Step 2b: Delete original (we have a copy of new file in place now)
         eprintln!("  Step 2: Deleting original file");
         if let Err(e) = fs::remove_file(original) {
@@ -144,7 +140,7 @@ pub fn atomic_replace(
                 original
             ));
         }
-        
+
         // Step 2c: Rename temp to original name
         eprintln!("  Step 3: Renaming temp to original location");
         if let Err(_e) = fs::rename(&temp_in_place, original) {
@@ -159,16 +155,19 @@ pub fn atomic_replace(
             }
             fs::remove_file(&temp_in_place).ok();
         }
-        
+
         // Clean up source temp file
         if let Err(e) = fs::remove_file(new) {
-            eprintln!("Warning: Failed to delete source temp file {:?}: {}", new, e);
+            eprintln!(
+                "Warning: Failed to delete source temp file {:?}: {}",
+                new, e
+            );
         }
-        
+
         eprintln!("Successfully replaced file without backup");
         return Ok(());
     }
-    
+
     // Step 3: Normal path - backup exists, copy new to original name
     match fs::copy(new, original) {
         Ok(_) => {
@@ -176,7 +175,7 @@ pub fn atomic_replace(
             if let Err(e) = fs::remove_file(new) {
                 eprintln!("Warning: Failed to delete temp file {:?}: {}", new, e);
             }
-            
+
             // Now handle the backup file
             if !keep_original {
                 // Delete the backup if not keeping original
@@ -198,7 +197,7 @@ pub fn atomic_replace(
             eprintln!("  Original: {:?}", original);
             eprintln!("  Error kind: {:?}", error_kind);
             eprintln!("  Error: {}", e);
-            
+
             // Check permissions and file info
             if let Ok(metadata) = fs::metadata(new) {
                 eprintln!("  New file size: {} bytes", metadata.len());
@@ -209,9 +208,12 @@ pub fn atomic_replace(
                     eprintln!("  Target dir permissions: {:?}", metadata.permissions());
                 }
             }
-            
-            eprintln!("Attempting to restore original from backup {:?}", orig_backup);
-            
+
+            eprintln!(
+                "Attempting to restore original from backup {:?}",
+                orig_backup
+            );
+
             // Try to restore the original
             match fs::rename(&orig_backup, original) {
                 Ok(_) => {
@@ -240,7 +242,7 @@ fn generate_backup_path(original: &Path, timestamp: u64) -> PathBuf {
     let parent = original.parent();
     let filename = original.file_name().unwrap();
     let backup_name = format!("{}.orig.{}", filename.to_string_lossy(), timestamp);
-    
+
     if let Some(p) = parent {
         p.join(backup_name)
     } else {

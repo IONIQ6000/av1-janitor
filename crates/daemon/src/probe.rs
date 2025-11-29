@@ -114,11 +114,10 @@ pub async fn probe_file(path: &Path) -> Result<ProbeResult> {
     }
 
     // Parse JSON output
-    let stdout = String::from_utf8(output.stdout)
-        .context("ffprobe output is not valid UTF-8")?;
-    
-    let ffprobe_output: FfprobeOutput = serde_json::from_str(&stdout)
-        .context("Failed to parse ffprobe JSON output")?;
+    let stdout = String::from_utf8(output.stdout).context("ffprobe output is not valid UTF-8")?;
+
+    let ffprobe_output: FfprobeOutput =
+        serde_json::from_str(&stdout).context("Failed to parse ffprobe JSON output")?;
 
     // Convert to our internal format
     parse_ffprobe_output(ffprobe_output)
@@ -130,9 +129,7 @@ fn parse_ffprobe_output(output: FfprobeOutput) -> Result<ProbeResult> {
     let format = if let Some(fmt) = output.format {
         FormatInfo {
             duration: fmt.duration.and_then(|d| d.parse::<f64>().ok()),
-            size: fmt.size
-                .and_then(|s| s.parse::<u64>().ok())
-                .unwrap_or(0),
+            size: fmt.size.and_then(|s| s.parse::<u64>().ok()).unwrap_or(0),
             bitrate: fmt.bit_rate.and_then(|b| b.parse::<u64>().ok()),
         }
     } else {
@@ -161,9 +158,11 @@ fn parse_ffprobe_output(output: FfprobeOutput) -> Result<ProbeResult> {
                         bitrate: stream.bit_rate.and_then(|b| b.parse::<u64>().ok()),
                         frame_rate: stream.r_frame_rate.clone(),
                         pix_fmt: stream.pix_fmt.clone(),
-                        bit_depth: stream.bits_per_raw_sample
+                        bit_depth: stream
+                            .bits_per_raw_sample
                             .and_then(|b| b.parse::<u8>().ok()),
-                        is_default: stream.disposition
+                        is_default: stream
+                            .disposition
                             .and_then(|d| d.default)
                             .map(|v| v == 1)
                             .unwrap_or(false),

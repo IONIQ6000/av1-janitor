@@ -145,7 +145,7 @@ min_bytes = 2147483648
 
 # Quality settings
 prefer_encoder = "svt"
-quality_tier = "high"
+quality_tier = "very_high"
 
 # Concurrency (start with 1 for quality)
 max_concurrent_jobs = 1
@@ -511,11 +511,11 @@ ExecStart=/usr/local/bin/send-notification.sh %i
 ### Quality vs Speed Tradeoffs
 
 ```toml
-# Maximum quality (slowest)
+# Maximum quality (default/slowest)
 quality_tier = "very_high"
 max_concurrent_jobs = 1
 
-# High quality (recommended)
+# High quality (faster)
 quality_tier = "high"
 max_concurrent_jobs = 1
 

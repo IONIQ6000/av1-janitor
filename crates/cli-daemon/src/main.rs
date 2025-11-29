@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
-use tracing::{info, error};
+use tracing::{error, info};
 use tracing_subscriber;
 
 #[derive(Parser, Debug)]
@@ -23,12 +23,12 @@ async fn main() -> Result<()> {
         .with_level(true)
         .with_ansi(true)
         .init();
-    
+
     info!("AV1 Re-encoding Daemon v{}", env!("CARGO_PKG_VERSION"));
-    
+
     // Parse command line arguments
     let args = Args::parse();
-    
+
     // Load configuration
     info!("Loading configuration...");
     let config = match av1d_daemon::config::load_config(args.config.as_deref()) {
@@ -41,11 +41,12 @@ async fn main() -> Result<()> {
             return Err(e);
         }
     };
-    
+
     // Display configuration summary
     info!("Library roots: {:?}", config.library_roots);
-    info!("Min file size: {} bytes ({} GB)", 
-        config.min_bytes, 
+    info!(
+        "Min file size: {} bytes ({} GB)",
+        config.min_bytes,
         config.min_bytes as f64 / 1_073_741_824.0
     );
     info!("Max size ratio: {}", config.max_size_ratio);
@@ -55,17 +56,20 @@ async fn main() -> Result<()> {
     info!("Temp output directory: {:?}", config.temp_output_dir);
     info!("Keep original files: {}", config.keep_original);
     info!("Write why sidecars: {}", config.write_why_sidecars);
-    
+
     // Run startup validation
     info!("Running startup validation...");
-    
+
     // Check FFmpeg version
     info!("Checking FFmpeg version...");
     let _ffmpeg_version = match av1d_daemon::startup::check_ffmpeg_version() {
         Ok(version) => {
             info!("FFmpeg version: {}.{}.{}", version.0, version.1, version.2);
             if version.0 < 8 {
-                error!("FFmpeg version {} is too old. Version 8.0 or higher is required.", version.0);
+                error!(
+                    "FFmpeg version {} is too old. Version 8.0 or higher is required.",
+                    version.0
+                );
                 return Err(anyhow::anyhow!("FFmpeg version too old"));
             }
             version
@@ -75,7 +79,7 @@ async fn main() -> Result<()> {
             return Err(e);
         }
     };
-    
+
     // Detect available encoders
     info!("Detecting available AV1 encoders...");
     let available_encoders = match av1d_daemon::startup::detect_available_encoders() {
@@ -92,28 +96,32 @@ async fn main() -> Result<()> {
             return Err(e);
         }
     };
-    
+
     // Select encoder based on preference and availability
     info!("Selecting encoder...");
-    let selected_encoder = match av1d_daemon::startup::select_encoder(&available_encoders, config.prefer_encoder) {
-        Ok(encoder) => {
-            info!("Selected encoder: {:?} ({})", encoder.encoder, encoder.codec_name);
-            encoder
-        }
-        Err(e) => {
-            error!("Failed to select encoder: {}", e);
-            return Err(e);
-        }
-    };
-    
+    let selected_encoder =
+        match av1d_daemon::startup::select_encoder(&available_encoders, config.prefer_encoder) {
+            Ok(encoder) => {
+                info!(
+                    "Selected encoder: {:?} ({})",
+                    encoder.encoder, encoder.codec_name
+                );
+                encoder
+            }
+            Err(e) => {
+                error!("Failed to select encoder: {}", e);
+                return Err(e);
+            }
+        };
+
     info!("Startup validation complete");
     info!("Starting daemon main loop...");
-    
+
     // Run the daemon main loop
     if let Err(e) = av1d_daemon::run_daemon_loop(config, selected_encoder).await {
         error!("Daemon loop error: {}", e);
         return Err(e);
     }
-    
+
     Ok(())
 }

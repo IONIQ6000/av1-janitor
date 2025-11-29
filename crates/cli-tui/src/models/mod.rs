@@ -1,5 +1,5 @@
-pub mod job;
 pub mod config;
+pub mod job;
 
-pub use job::{Job, JobStatus, load_all_jobs};
 pub use config::TranscodeConfig;
+pub use job::{load_all_jobs, Job, JobStatus};

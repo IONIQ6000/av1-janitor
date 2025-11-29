@@ -1,6 +1,6 @@
 use av1d_daemon::config::{DaemonConfig, EncoderPreference, QualityTier};
 use av1d_daemon::gates::{check_gates, GateResult, SkipReason};
-use av1d_daemon::probe::{FormatInfo, ProbeResult, VideoStream, AudioStream};
+use av1d_daemon::probe::{AudioStream, FormatInfo, ProbeResult, VideoStream};
 use av1d_daemon::scan::CandidateFile;
 use av1d_daemon::sidecars::create_skip_marker;
 use proptest::prelude::*;
@@ -20,17 +20,17 @@ fn property_size_threshold_enforcement() {
     )| {
         let temp_dir = TempDir::new().unwrap();
         let video_path = temp_dir.path().join("test.mkv");
-        
+
         // Create a dummy video file
         fs::write(&video_path, vec![0u8; 100]).unwrap();
-        
+
         // Create candidate file with specified size
         let candidate = CandidateFile {
             path: video_path.clone(),
             size_bytes: file_size,
             modified_time: SystemTime::now(),
         };
-        
+
         // Create probe result with at least one video stream (not AV1)
         let probe = ProbeResult {
             format: FormatInfo {
@@ -52,7 +52,7 @@ fn property_size_threshold_enforcement() {
             audio_streams: vec![],
             subtitle_streams: vec![],
         };
-        
+
         // Create config with specified min_bytes
         let config = DaemonConfig {
             library_roots: vec![],
@@ -67,10 +67,10 @@ fn property_size_threshold_enforcement() {
             keep_original: false,
             write_why_sidecars: true,
         };
-        
+
         // Check gates
         let result = check_gates(&candidate, &probe, &config);
-        
+
         // Property: Files at or below min_bytes should be skipped
         if file_size <= min_bytes {
             prop_assert!(
@@ -96,15 +96,15 @@ fn test_size_threshold_boundary() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     let min_bytes = 1_000_000_000u64; // 1GB
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: min_bytes, // Exactly equal
         modified_time: SystemTime::now(),
     };
-    
+
     let probe = ProbeResult {
         format: FormatInfo {
             duration: Some(3600.0),
@@ -125,7 +125,7 @@ fn test_size_threshold_boundary() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes,
@@ -134,14 +134,14 @@ fn test_size_threshold_boundary() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     // File size exactly equal to min_bytes should be skipped (<=)
     assert!(
         matches!(result, GateResult::Skip(SkipReason::TooSmall)),
@@ -155,15 +155,15 @@ fn test_size_just_above_threshold() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     let min_bytes = 1_000_000_000u64; // 1GB
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: min_bytes + 1, // Just above threshold
         modified_time: SystemTime::now(),
     };
-    
+
     let probe = ProbeResult {
         format: FormatInfo {
             duration: Some(3600.0),
@@ -184,7 +184,7 @@ fn test_size_just_above_threshold() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes,
@@ -193,14 +193,14 @@ fn test_size_just_above_threshold() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     // Should not be skipped for size reasons
     assert!(
         !matches!(result, GateResult::Skip(SkipReason::TooSmall)),
@@ -223,13 +223,13 @@ fn property_av1_codec_detection_and_skip() {
         let temp_dir = TempDir::new().unwrap();
         let video_path = temp_dir.path().join("test.mkv");
         fs::write(&video_path, vec![0u8; 100]).unwrap();
-        
+
         let candidate = CandidateFile {
             path: video_path.clone(),
             size_bytes: file_size,
             modified_time: SystemTime::now(),
         };
-        
+
         // Create probe result with specified codec
         let probe = ProbeResult {
             format: FormatInfo {
@@ -251,7 +251,7 @@ fn property_av1_codec_detection_and_skip() {
             audio_streams: vec![],
             subtitle_streams: vec![],
         };
-        
+
         let config = DaemonConfig {
             library_roots: vec![],
             min_bytes: 1_000_000_000, // 1GB - below our file size
@@ -265,9 +265,9 @@ fn property_av1_codec_detection_and_skip() {
             keep_original: false,
             write_why_sidecars: true,
         };
-        
+
         let result = check_gates(&candidate, &probe, &config);
-        
+
         // Property: Files with AV1 codec (case-insensitive) should be skipped
         if codec_name.to_lowercase() == "av1" {
             prop_assert!(
@@ -292,13 +292,13 @@ fn test_no_video_streams() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: 5_000_000_000,
         modified_time: SystemTime::now(),
     };
-    
+
     // Probe result with no video streams
     let probe = ProbeResult {
         format: FormatInfo {
@@ -314,7 +314,7 @@ fn test_no_video_streams() {
         }],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes: 1_000_000_000,
@@ -323,14 +323,14 @@ fn test_no_video_streams() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     assert!(
         matches!(result, GateResult::Skip(SkipReason::NoVideo)),
         "File with no video streams should be skipped"
@@ -343,16 +343,16 @@ fn test_skip_marker_gate() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     // Create skip marker
     create_skip_marker(&video_path).unwrap();
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: 5_000_000_000,
         modified_time: SystemTime::now(),
     };
-    
+
     let probe = ProbeResult {
         format: FormatInfo {
             duration: Some(3600.0),
@@ -373,7 +373,7 @@ fn test_skip_marker_gate() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes: 1_000_000_000,
@@ -382,14 +382,14 @@ fn test_skip_marker_gate() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     assert!(
         matches!(result, GateResult::Skip(SkipReason::HasSkipMarker)),
         "File with skip marker should be skipped"
@@ -402,16 +402,16 @@ fn test_gate_evaluation_order() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     // Create skip marker
     create_skip_marker(&video_path).unwrap();
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: 100, // Too small
         modified_time: SystemTime::now(),
     };
-    
+
     // Probe with no video streams
     let probe = ProbeResult {
         format: FormatInfo {
@@ -423,7 +423,7 @@ fn test_gate_evaluation_order() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes: 1_000_000_000,
@@ -432,14 +432,14 @@ fn test_gate_evaluation_order() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     // Should return HasSkipMarker, not NoVideo or TooSmall
     // This tests that skip marker is checked first
     assert!(
@@ -454,13 +454,13 @@ fn test_valid_file_passes_gates() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: 5_000_000_000, // Large enough
         modified_time: SystemTime::now(),
     };
-    
+
     let probe = ProbeResult {
         format: FormatInfo {
             duration: Some(3600.0),
@@ -481,7 +481,7 @@ fn test_valid_file_passes_gates() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes: 1_000_000_000,
@@ -490,14 +490,14 @@ fn test_valid_file_passes_gates() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     assert!(
         matches!(result, GateResult::Pass),
         "Valid file should pass all gates"
@@ -510,13 +510,13 @@ fn test_multiple_video_streams() {
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, vec![0u8; 100]).unwrap();
-    
+
     let candidate = CandidateFile {
         path: video_path.clone(),
         size_bytes: 5_000_000_000,
         modified_time: SystemTime::now(),
     };
-    
+
     // Multiple video streams, first one is AV1
     let probe = ProbeResult {
         format: FormatInfo {
@@ -551,7 +551,7 @@ fn test_multiple_video_streams() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let config = DaemonConfig {
         library_roots: vec![],
         min_bytes: 1_000_000_000,
@@ -560,14 +560,14 @@ fn test_multiple_video_streams() {
         job_state_dir: PathBuf::from("/tmp"),
         temp_output_dir: PathBuf::from("/tmp"),
         max_concurrent_jobs: 1,
-            prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+        prefer_encoder: EncoderPreference::Svt,
+        quality_tier: QualityTier::High,
         keep_original: false,
         write_why_sidecars: true,
     };
-    
+
     let result = check_gates(&candidate, &probe, &config);
-    
+
     // Should be skipped because first stream is AV1
     assert!(
         matches!(result, GateResult::Skip(SkipReason::AlreadyAv1)),

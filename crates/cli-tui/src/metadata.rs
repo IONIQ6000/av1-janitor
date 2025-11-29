@@ -1,15 +1,14 @@
 /// Metadata validation and formatting utilities for the TUI
-/// 
+///
 /// This module provides helper functions for:
 /// - Validating job metadata completeness
 /// - Formatting optional values consistently
 /// - Identifying missing metadata fields
-
 use crate::models::Job;
 use std::fmt::Display;
 
 /// Check if job has all metadata needed for savings estimation
-/// 
+///
 /// Required fields for estimation:
 /// - original_bytes: Size of the original file
 /// - video_codec: Source codec (affects compression potential)
@@ -27,7 +26,7 @@ pub fn has_estimation_metadata(job: &Job) -> bool {
 }
 
 /// Check if job has complete video metadata
-/// 
+///
 /// Complete metadata includes all estimation fields plus:
 /// - source_bit_depth: Bit depth of source video
 /// - source_pix_fmt: Pixel format
@@ -40,7 +39,7 @@ pub fn has_complete_video_metadata(job: &Job) -> bool {
 }
 
 /// Get list of missing metadata fields for a job
-/// 
+///
 /// Returns a vector of field names that are missing and required for estimation.
 /// Field abbreviations:
 /// - "orig": original_bytes
@@ -51,7 +50,7 @@ pub fn has_complete_video_metadata(job: &Job) -> bool {
 /// - "fps": video_frame_rate
 pub fn get_missing_metadata_fields(job: &Job) -> Vec<&'static str> {
     let mut missing = Vec::new();
-    
+
     if job.original_bytes.is_none() {
         missing.push("orig");
     }
@@ -70,19 +69,19 @@ pub fn get_missing_metadata_fields(job: &Job) -> Vec<&'static str> {
     if job.video_frame_rate.is_none() {
         missing.push("fps");
     }
-    
+
     missing
 }
 
 /// Format optional value with fallback
-/// 
+///
 /// Returns the formatted value if Some, otherwise returns the fallback string.
-/// 
+///
 /// # Examples
 /// ```
 /// let value: Option<i32> = Some(42);
 /// assert_eq!(format_optional(value, "-"), "42");
-/// 
+///
 /// let value: Option<i32> = None;
 /// assert_eq!(format_optional(value, "-"), "-");
 /// ```
@@ -94,7 +93,7 @@ pub fn format_optional<T: Display>(value: Option<T>, fallback: &str) -> String {
 }
 
 /// Format file size with fallback
-/// 
+///
 /// Returns human-readable size if Some, otherwise returns the fallback string.
 /// Uses decimal units (GB, MB, KB) for consistency with storage industry standards.
 pub fn format_size_optional(bytes: Option<u64>, fallback: &str) -> String {
@@ -108,7 +107,7 @@ pub fn format_size_optional(bytes: Option<u64>, fallback: &str) -> String {
 }
 
 /// Format percentage with fallback
-/// 
+///
 /// Returns formatted percentage (e.g., "45.2%") if Some, otherwise returns fallback.
 /// Clamps percentage to 0-100 range for display.
 pub fn format_percentage_optional(value: Option<f64>, fallback: &str) -> String {
@@ -122,15 +121,15 @@ pub fn format_percentage_optional(value: Option<f64>, fallback: &str) -> String 
 }
 
 /// Format missing metadata indicator
-/// 
+///
 /// Creates a string showing which specific fields are missing.
 /// Format: "-field1,field2,field3"
-/// 
+///
 /// # Examples
 /// ```
 /// let missing = vec!["orig", "codec", "w"];
 /// assert_eq!(format_missing_metadata(&missing), "-orig,codec,w");
-/// 
+///
 /// let missing = vec![];
 /// assert_eq!(format_missing_metadata(&missing), "");
 /// ```
@@ -143,7 +142,7 @@ pub fn format_missing_metadata(missing_fields: &[&str]) -> String {
 }
 
 /// Format codec name consistently (uppercase)
-/// 
+///
 /// Returns uppercase codec name if Some, otherwise returns fallback.
 /// Ensures consistent display of codec names across the UI.
 pub fn format_codec(codec: Option<&str>, fallback: &str) -> String {
@@ -180,11 +179,19 @@ mod tests {
             original_bytes: if has_orig { Some(10_000_000_000) } else { None },
             new_bytes: None,
             is_web_like: false,
-            video_codec: if has_codec { Some("hevc".to_string()) } else { None },
+            video_codec: if has_codec {
+                Some("hevc".to_string())
+            } else {
+                None
+            },
             video_bitrate: if has_bitrate { Some(10_000_000) } else { None },
             video_width: if has_width { Some(1920) } else { None },
             video_height: if has_height { Some(1080) } else { None },
-            video_frame_rate: if has_fps { Some("24/1".to_string()) } else { None },
+            video_frame_rate: if has_fps {
+                Some("24/1".to_string())
+            } else {
+                None
+            },
             crf_used: None,
             preset_used: None,
             encoder_used: None,
@@ -233,7 +240,10 @@ mod tests {
 
         // Missing multiple fields
         let job = create_test_job_with_metadata(false, false, true, true, false, true);
-        assert_eq!(get_missing_metadata_fields(&job), vec!["orig", "codec", "br"]);
+        assert_eq!(
+            get_missing_metadata_fields(&job),
+            vec!["orig", "codec", "br"]
+        );
     }
 
     #[test]
@@ -241,7 +251,10 @@ mod tests {
         assert_eq!(format_optional(Some(42), "-"), "42");
         assert_eq!(format_optional(Some("test"), "-"), "test");
         assert_eq!(format_optional(None::<i32>, "-"), "-");
-        assert_eq!(format_optional(None::<String>, "(not available)"), "(not available)");
+        assert_eq!(
+            format_optional(None::<String>, "(not available)"),
+            "(not available)"
+        );
     }
 
     #[test]
@@ -250,7 +263,7 @@ mod tests {
         assert_eq!(format_percentage_optional(Some(100.0), "-"), "100.0%");
         assert_eq!(format_percentage_optional(Some(0.0), "-"), "0.0%");
         assert_eq!(format_percentage_optional(None, "-"), "-");
-        
+
         // Test clamping
         assert_eq!(format_percentage_optional(Some(150.0), "-"), "100.0%");
         assert_eq!(format_percentage_optional(Some(-10.0), "-"), "0.0%");
@@ -260,7 +273,10 @@ mod tests {
     fn test_format_missing_metadata() {
         assert_eq!(format_missing_metadata(&[]), "");
         assert_eq!(format_missing_metadata(&["orig"]), "-orig");
-        assert_eq!(format_missing_metadata(&["orig", "codec", "w"]), "-orig,codec,w");
+        assert_eq!(
+            format_missing_metadata(&["orig", "codec", "w"]),
+            "-orig,codec,w"
+        );
     }
 
     #[test]

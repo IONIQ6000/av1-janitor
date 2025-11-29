@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
 /// Expand tilde (~) in a path to the user's home directory
 fn expand_tilde(path: &Path) -> PathBuf {
@@ -123,7 +123,7 @@ impl TranscodeConfig {
             max_size_ratio: 0.90,
             job_state_dir: PathBuf::from("/tmp/av1d-jobs"),
             scan_interval_secs: 60,
-            stuck_job_timeout_secs: 3600, // 1 hour
+            stuck_job_timeout_secs: 3600,        // 1 hour
             stuck_job_file_inactivity_secs: 600, // 10 minutes
             stuck_job_check_enable_process: true,
             stuck_job_check_enable_file_activity: true,
@@ -138,12 +138,13 @@ impl TranscodeConfig {
             preferred_encoder: None,
         }
     }
-    
+
     /// Get the command directory path, deriving from job_state_dir if not explicitly set
     pub fn command_dir(&self) -> PathBuf {
         self.command_dir.clone().unwrap_or_else(|| {
             // Default to {job_state_dir}/../commands
-            self.job_state_dir.parent()
+            self.job_state_dir
+                .parent()
                 .map(|p| p.join("commands"))
                 .unwrap_or_else(|| PathBuf::from("/var/lib/av1d/commands"))
         })
@@ -155,17 +156,22 @@ impl TranscodeConfig {
 
         if let Some(config_path) = path {
             if config_path.exists() {
-                let content = std::fs::read_to_string(config_path)
-                    .with_context(|| format!("Failed to read config file: {}", config_path.display()))?;
+                let content = std::fs::read_to_string(config_path).with_context(|| {
+                    format!("Failed to read config file: {}", config_path.display())
+                })?;
 
                 // Try JSON first, then TOML
                 if config_path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                    let file_config: TranscodeConfig = toml::from_str(&content)
-                        .with_context(|| format!("Failed to parse TOML config: {}", config_path.display()))?;
+                    let file_config: TranscodeConfig =
+                        toml::from_str(&content).with_context(|| {
+                            format!("Failed to parse TOML config: {}", config_path.display())
+                        })?;
                     config = file_config;
                 } else {
                     let file_config: TranscodeConfig = serde_json::from_str(&content)
-                        .with_context(|| format!("Failed to parse JSON config: {}", config_path.display()))?;
+                        .with_context(|| {
+                            format!("Failed to parse JSON config: {}", config_path.display())
+                        })?;
                     config = file_config;
                 }
             }
@@ -189,4 +195,3 @@ impl TranscodeConfig {
         }
     }
 }
-

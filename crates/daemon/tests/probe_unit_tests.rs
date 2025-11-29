@@ -5,26 +5,27 @@ use av1d_daemon::probe::{select_main_video_stream, VideoStream};
 fn test_empty_stream_list() {
     let streams: Vec<VideoStream> = Vec::new();
     let selected = select_main_video_stream(&streams);
-    assert!(selected.is_none(), "Should return None for empty stream list");
+    assert!(
+        selected.is_none(),
+        "Should return None for empty stream list"
+    );
 }
 
 /// Test stream selection with single stream
 #[test]
 fn test_single_stream() {
-    let streams = vec![
-        VideoStream {
-            index: 0,
-            codec_name: "h264".to_string(),
-            width: 1920,
-            height: 1080,
-            bitrate: Some(5_000_000),
-            frame_rate: Some("24/1".to_string()),
-            pix_fmt: Some("yuv420p".to_string()),
-            bit_depth: Some(8),
-            is_default: false,
-        }
-    ];
-    
+    let streams = vec![VideoStream {
+        index: 0,
+        codec_name: "h264".to_string(),
+        width: 1920,
+        height: 1080,
+        bitrate: Some(5_000_000),
+        frame_rate: Some("24/1".to_string()),
+        pix_fmt: Some("yuv420p".to_string()),
+        bit_depth: Some(8),
+        is_default: false,
+    }];
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
     assert_eq!(selected.unwrap().index, 0);
@@ -66,12 +67,16 @@ fn test_default_preference() {
             pix_fmt: Some("yuv420p".to_string()),
             bit_depth: Some(8),
             is_default: false,
-        }
+        },
     ];
-    
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
-    assert_eq!(selected.unwrap().index, 1, "Should select stream with default disposition");
+    assert_eq!(
+        selected.unwrap().index,
+        1,
+        "Should select stream with default disposition"
+    );
     assert!(selected.unwrap().is_default);
 }
 
@@ -100,34 +105,36 @@ fn test_first_stream_fallback() {
             pix_fmt: Some("yuv420p10le".to_string()),
             bit_depth: Some(10),
             is_default: false,
-        }
+        },
     ];
-    
+
     let selected = select_main_video_stream(&streams);
     assert!(selected.is_some());
-    assert_eq!(selected.unwrap().index, 0, "Should select first stream when no default");
+    assert_eq!(
+        selected.unwrap().index,
+        0,
+        "Should select first stream when no default"
+    );
 }
 
 /// Test parsing of various video codecs
 #[test]
 fn test_various_codecs() {
     let codecs = vec!["h264", "hevc", "vp9", "av1", "mpeg2video", "mpeg4"];
-    
+
     for codec in codecs {
-        let streams = vec![
-            VideoStream {
-                index: 0,
-                codec_name: codec.to_string(),
-                width: 1920,
-                height: 1080,
-                bitrate: Some(5_000_000),
-                frame_rate: Some("24/1".to_string()),
-                pix_fmt: Some("yuv420p".to_string()),
-                bit_depth: Some(8),
-                is_default: false,
-            }
-        ];
-        
+        let streams = vec![VideoStream {
+            index: 0,
+            codec_name: codec.to_string(),
+            width: 1920,
+            height: 1080,
+            bitrate: Some(5_000_000),
+            frame_rate: Some("24/1".to_string()),
+            pix_fmt: Some("yuv420p".to_string()),
+            bit_depth: Some(8),
+            is_default: false,
+        }];
+
         let selected = select_main_video_stream(&streams);
         assert!(selected.is_some());
         assert_eq!(selected.unwrap().codec_name, codec);

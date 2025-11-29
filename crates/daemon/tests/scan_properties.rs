@@ -186,38 +186,38 @@ fn property_skip_marker_enforcement() {
         video_files_without_markers in prop::collection::vec(video_file_name(), 1..10)
     )| {
         use av1d_daemon::sidecars::create_skip_marker;
-        
+
         let temp_dir = TempDir::new().unwrap();
         let root = temp_dir.path();
-        
+
         // Create video files with skip markers
         for name in &video_files_with_markers {
             let path = root.join(name);
             fs::write(&path, "video with marker").unwrap();
             create_skip_marker(&path).unwrap();
         }
-        
+
         // Create video files without skip markers
         for name in &video_files_without_markers {
             let path = root.join(name);
             fs::write(&path, "video without marker").unwrap();
         }
-        
+
         // Scan the directory
         let results = scan_libraries(&[root.to_path_buf()]).unwrap();
-        
+
         // Should only find files without markers
         prop_assert_eq!(results.len(), video_files_without_markers.len(),
             "Should only find {} files without markers, found {}",
             video_files_without_markers.len(), results.len());
-        
+
         // Verify no files with markers are in results
         for name in &video_files_with_markers {
             let path = root.join(name);
             let found = results.iter().any(|c| c.path == path);
             prop_assert!(!found, "File with skip marker should not be in results: {}", name);
         }
-        
+
         // Verify all files without markers are in results
         for name in &video_files_without_markers {
             let path = root.join(name);
@@ -231,20 +231,20 @@ fn property_skip_marker_enforcement() {
 #[test]
 fn test_skip_marker_creation() {
     use av1d_daemon::sidecars::{create_skip_marker, has_skip_marker};
-    
+
     let temp_dir = TempDir::new().unwrap();
     let video_path = temp_dir.path().join("test.mkv");
     fs::write(&video_path, "test video").unwrap();
-    
+
     // Initially no skip marker
     assert!(!has_skip_marker(&video_path));
-    
+
     // Create skip marker
     create_skip_marker(&video_path).unwrap();
-    
+
     // Now should have skip marker
     assert!(has_skip_marker(&video_path));
-    
+
     // Verify the marker file exists
     let marker_path = video_path.with_extension("mkv.av1skip");
     assert!(marker_path.exists());
@@ -254,17 +254,20 @@ fn test_skip_marker_creation() {
 #[test]
 fn test_skip_marker_various_extensions() {
     use av1d_daemon::sidecars::{create_skip_marker, has_skip_marker};
-    
+
     let temp_dir = TempDir::new().unwrap();
     let extensions = vec!["mkv", "mp4", "avi", "mov", "m4v", "ts", "m2ts"];
-    
+
     for ext in extensions {
         let video_path = temp_dir.path().join(format!("test.{}", ext));
         fs::write(&video_path, "test video").unwrap();
-        
+
         create_skip_marker(&video_path).unwrap();
-        assert!(has_skip_marker(&video_path), 
-            "Skip marker should work for .{} files", ext);
+        assert!(
+            has_skip_marker(&video_path),
+            "Skip marker should work for .{} files",
+            ext
+        );
     }
 }
 
@@ -272,26 +275,26 @@ fn test_skip_marker_various_extensions() {
 #[test]
 fn test_skip_marker_in_subdirectories() {
     use av1d_daemon::sidecars::create_skip_marker;
-    
+
     let temp_dir = TempDir::new().unwrap();
     let root = temp_dir.path();
-    
+
     // Create subdirectory
     let subdir = root.join("subdir");
     fs::create_dir(&subdir).unwrap();
-    
+
     // Create video with skip marker in subdirectory
     let video_with_marker = subdir.join("skip_me.mkv");
     fs::write(&video_with_marker, "skip this").unwrap();
     create_skip_marker(&video_with_marker).unwrap();
-    
+
     // Create video without skip marker in subdirectory
     let video_without_marker = subdir.join("process_me.mkv");
     fs::write(&video_without_marker, "process this").unwrap();
-    
+
     // Scan
     let results = scan_libraries(&[root.to_path_buf()]).unwrap();
-    
+
     // Should only find the file without marker
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].path, video_without_marker);

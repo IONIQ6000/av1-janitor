@@ -44,7 +44,7 @@ impl Default for DaemonConfig {
             temp_output_dir: PathBuf::from("/var/lib/av1d/temp"),
             max_concurrent_jobs: 1,
             prefer_encoder: EncoderPreference::Svt,
-            quality_tier: QualityTier::High,
+            quality_tier: QualityTier::VeryHigh,
             keep_original: false,
             write_why_sidecars: true,
         }
@@ -56,7 +56,7 @@ pub fn load_config(path: Option<&std::path::Path>) -> Result<DaemonConfig> {
         if config_path.exists() {
             let contents = std::fs::read_to_string(config_path)
                 .map_err(|e| anyhow::anyhow!("Failed to read config file: {}", e))?;
-            
+
             toml::from_str::<DaemonConfig>(&contents)
                 .map_err(|e| anyhow::anyhow!("Failed to parse TOML config: {}", e))?
         } else {
@@ -69,7 +69,7 @@ pub fn load_config(path: Option<&std::path::Path>) -> Result<DaemonConfig> {
         tracing::info!("No config path provided, using defaults");
         DaemonConfig::default()
     };
-    
+
     validate_config(&config)?;
     Ok(config)
 }
@@ -78,15 +78,15 @@ pub fn validate_config(config: &DaemonConfig) -> Result<()> {
     if config.library_roots.is_empty() {
         anyhow::bail!("library_roots cannot be empty");
     }
-    
+
     if config.max_size_ratio <= 0.0 || config.max_size_ratio > 1.0 {
         anyhow::bail!("max_size_ratio must be between 0.0 and 1.0 (exclusive of 0.0)");
     }
-    
+
     if config.max_concurrent_jobs == 0 {
         anyhow::bail!("max_concurrent_jobs must be at least 1");
     }
-    
+
     Ok(())
 }
 
@@ -107,10 +107,7 @@ mod tests {
     }
 
     fn arb_quality_tier() -> impl Strategy<Value = QualityTier> {
-        prop_oneof![
-            Just(QualityTier::High),
-            Just(QualityTier::VeryHigh),
-        ]
+        prop_oneof![Just(QualityTier::High), Just(QualityTier::VeryHigh),]
     }
 
     fn arb_daemon_config() -> impl Strategy<Value = DaemonConfig> {
@@ -160,10 +157,10 @@ mod tests {
 
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(100))]
-        
+
         /// **Feature: av1-reencoder, Property 3: Configuration loading and application**
         /// **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6**
-        /// 
+        ///
         /// For any valid DaemonConfig, serializing to TOML and then deserializing
         /// should produce an equivalent configuration.
         #[test]
@@ -171,7 +168,7 @@ mod tests {
             // Serialize to TOML
             let toml_string = toml::to_string(&config)
                 .expect("Failed to serialize config to TOML");
-            
+
             // Write to temporary file
             let mut temp_file = NamedTempFile::new()
                 .expect("Failed to create temp file");
@@ -179,18 +176,18 @@ mod tests {
                 .expect("Failed to write to temp file");
             temp_file.flush()
                 .expect("Failed to flush temp file");
-            
+
             // Load config from file
             let loaded_config = load_config(Some(temp_file.path()))
                 .expect("Failed to load config from file");
-            
+
             // Verify equality
             prop_assert_eq!(config, loaded_config);
         }
     }
 
     // Unit tests for edge cases
-    
+
     #[test]
     fn test_missing_config_file_uses_defaults() {
         let non_existent_path = PathBuf::from("/tmp/non_existent_config_12345.toml");
@@ -230,15 +227,24 @@ min_bytes = 5000000000
         temp_file.flush().expect("Failed to flush");
 
         let config = load_config(Some(temp_file.path())).expect("Should load partial config");
-        
+
         // Check custom values
         assert_eq!(config.library_roots, vec![PathBuf::from("/custom/path")]);
         assert_eq!(config.min_bytes, 5_000_000_000);
-        
+
         // Check defaults are used for missing fields
-        assert_eq!(config.max_size_ratio, DaemonConfig::default().max_size_ratio);
-        assert_eq!(config.scan_interval_secs, DaemonConfig::default().scan_interval_secs);
-        assert_eq!(config.max_concurrent_jobs, DaemonConfig::default().max_concurrent_jobs);
+        assert_eq!(
+            config.max_size_ratio,
+            DaemonConfig::default().max_size_ratio
+        );
+        assert_eq!(
+            config.scan_interval_secs,
+            DaemonConfig::default().scan_interval_secs
+        );
+        assert_eq!(
+            config.max_concurrent_jobs,
+            DaemonConfig::default().max_concurrent_jobs
+        );
     }
 
     #[test]
@@ -247,7 +253,7 @@ min_bytes = 5000000000
             library_roots: vec![],
             ..Default::default()
         };
-        
+
         let result = validate_config(&config);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("library_roots"));
@@ -259,7 +265,7 @@ min_bytes = 5000000000
             max_size_ratio: 0.0,
             ..Default::default()
         };
-        
+
         let result = validate_config(&config);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("max_size_ratio"));
@@ -271,7 +277,7 @@ min_bytes = 5000000000
             max_size_ratio: 1.5,
             ..Default::default()
         };
-        
+
         let result = validate_config(&config);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("max_size_ratio"));
@@ -283,10 +289,13 @@ min_bytes = 5000000000
             max_concurrent_jobs: 0,
             ..Default::default()
         };
-        
+
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("max_concurrent_jobs"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("max_concurrent_jobs"));
     }
 
     #[test]
@@ -296,14 +305,23 @@ min_bytes = 5000000000
         struct Wrapper {
             pref: EncoderPreference,
         }
-        
-        let svt = toml::to_string(&Wrapper { pref: EncoderPreference::Svt }).unwrap();
+
+        let svt = toml::to_string(&Wrapper {
+            pref: EncoderPreference::Svt,
+        })
+        .unwrap();
         assert!(svt.contains("pref = \"svt\""));
-        
-        let aom = toml::to_string(&Wrapper { pref: EncoderPreference::Aom }).unwrap();
+
+        let aom = toml::to_string(&Wrapper {
+            pref: EncoderPreference::Aom,
+        })
+        .unwrap();
         assert!(aom.contains("pref = \"aom\""));
-        
-        let rav1e = toml::to_string(&Wrapper { pref: EncoderPreference::Rav1e }).unwrap();
+
+        let rav1e = toml::to_string(&Wrapper {
+            pref: EncoderPreference::Rav1e,
+        })
+        .unwrap();
         assert!(rav1e.contains("pref = \"rav1e\""));
     }
 
@@ -314,11 +332,17 @@ min_bytes = 5000000000
         struct Wrapper {
             tier: QualityTier,
         }
-        
-        let high = toml::to_string(&Wrapper { tier: QualityTier::High }).unwrap();
+
+        let high = toml::to_string(&Wrapper {
+            tier: QualityTier::High,
+        })
+        .unwrap();
         assert!(high.contains("tier = \"high\""));
-        
-        let very_high = toml::to_string(&Wrapper { tier: QualityTier::VeryHigh }).unwrap();
+
+        let very_high = toml::to_string(&Wrapper {
+            tier: QualityTier::VeryHigh,
+        })
+        .unwrap();
         assert!(very_high.contains("tier = \"very_high\""));
     }
 }

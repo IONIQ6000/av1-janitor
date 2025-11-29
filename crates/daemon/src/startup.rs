@@ -1,7 +1,7 @@
+use crate::config::EncoderPreference;
 use anyhow::{anyhow, Context, Result};
 use regex::Regex;
 use std::process::Command;
-use crate::config::EncoderPreference;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AvailableEncoder {
@@ -27,25 +27,30 @@ pub fn check_ffmpeg_version() -> Result<(u32, u32, u32)> {
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    
+
     // Parse version from output like "ffmpeg version 8.0.1" or "ffmpeg version n8.0.1"
     let re = Regex::new(r"ffmpeg version[^\d]*(\d+)\.(\d+)\.(\d+)").unwrap();
-    
+
     if let Some(caps) = re.captures(&stdout) {
         let major: u32 = caps[1].parse().context("Failed to parse major version")?;
         let minor: u32 = caps[2].parse().context("Failed to parse minor version")?;
         let patch: u32 = caps[3].parse().context("Failed to parse patch version")?;
-        
+
         if major < 8 {
             return Err(anyhow!(
                 "FFmpeg version {}.{}.{} is too old. Version 8.0 or higher is required.",
-                major, minor, patch
+                major,
+                minor,
+                patch
             ));
         }
-        
+
         Ok((major, minor, patch))
     } else {
-        Err(anyhow!("Failed to parse ffmpeg version from output: {}", stdout))
+        Err(anyhow!(
+            "Failed to parse ffmpeg version from output: {}",
+            stdout
+        ))
     }
 }
 
@@ -138,7 +143,7 @@ mod tests {
     // **Validates: Requirements 1.1, 1.2, 1.3**
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(100))]
-        
+
         #[test]
         fn test_ffmpeg_version_parsing(
             major in 0u32..20,
@@ -147,20 +152,20 @@ mod tests {
         ) {
             // Generate a mock ffmpeg version output
             let version_output = format!("ffmpeg version {}.{}.{} Copyright (c) 2000-2024", major, minor, patch);
-            
+
             // Parse using regex (same logic as check_ffmpeg_version)
             let re = Regex::new(r"ffmpeg version[^\d]*(\d+)\.(\d+)\.(\d+)").unwrap();
-            
+
             if let Some(caps) = re.captures(&version_output) {
                 let parsed_major: u32 = caps[1].parse().unwrap();
                 let parsed_minor: u32 = caps[2].parse().unwrap();
                 let parsed_patch: u32 = caps[3].parse().unwrap();
-                
+
                 // Property: Parsing should correctly extract version numbers
                 prop_assert_eq!(parsed_major, major);
                 prop_assert_eq!(parsed_minor, minor);
                 prop_assert_eq!(parsed_patch, patch);
-                
+
                 // Property: Versions < 8 should be rejected
                 if major < 8 {
                     prop_assert!(parsed_major < 8, "Version {} should be rejected", major);
@@ -189,7 +194,11 @@ mod tests {
             if let Some(caps) = re.captures(version_str) {
                 let major: u32 = caps[1].parse().unwrap();
                 let is_valid = major >= 8;
-                assert_eq!(is_valid, should_accept, "Version {} acceptance mismatch", version_str);
+                assert_eq!(
+                    is_valid, should_accept,
+                    "Version {} acceptance mismatch",
+                    version_str
+                );
             }
         }
     }
@@ -213,7 +222,7 @@ mod tests {
     // **Validates: Requirements 2.2, 2.3, 2.4**
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(100))]
-        
+
         #[test]
         fn test_encoder_selection_hierarchy(
             has_svt in prop::bool::ANY,
@@ -246,7 +255,7 @@ mod tests {
             // Otherwise, selection should succeed
             let result = select_encoder(&available, preference);
             prop_assert!(result.is_ok());
-            
+
             let selected = result.unwrap();
 
             // Property: If preferred encoder is available, it should be selected
@@ -282,7 +291,7 @@ mod tests {
     #[test]
     fn test_encoder_selection_specific_cases() {
         // Test specific hierarchy cases
-        
+
         // Case 1: All available, should select SVT-AV1
         let all = vec![
             AvailableEncoder::SvtAv1,
@@ -293,10 +302,7 @@ mod tests {
         assert_eq!(result.encoder, AvailableEncoder::SvtAv1);
 
         // Case 2: Only AOM and rav1e, should select AOM
-        let aom_rav1e = vec![
-            AvailableEncoder::LibaomAv1,
-            AvailableEncoder::Librav1e,
-        ];
+        let aom_rav1e = vec![AvailableEncoder::LibaomAv1, AvailableEncoder::Librav1e];
         let result = select_encoder(&aom_rav1e, EncoderPreference::Svt).unwrap();
         assert_eq!(result.encoder, AvailableEncoder::LibaomAv1);
 

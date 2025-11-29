@@ -1,5 +1,5 @@
-use av1d_daemon::startup::*;
 use av1d_daemon::config::EncoderPreference;
+use av1d_daemon::startup::*;
 
 #[test]
 fn test_encoder_selection_integration() {
@@ -34,20 +34,14 @@ fn test_encoder_selection_integration() {
 #[test]
 fn test_encoder_hierarchy() {
     // Test that hierarchy is respected: SVT > AOM > rav1e
-    
+
     // Only AOM and rav1e available, should pick AOM
-    let aom_rav1e = vec![
-        AvailableEncoder::LibaomAv1,
-        AvailableEncoder::Librav1e,
-    ];
+    let aom_rav1e = vec![AvailableEncoder::LibaomAv1, AvailableEncoder::Librav1e];
     let result = select_encoder(&aom_rav1e, EncoderPreference::Svt).unwrap();
     assert_eq!(result.encoder, AvailableEncoder::LibaomAv1);
 
     // Only SVT and rav1e available, should pick SVT
-    let svt_rav1e = vec![
-        AvailableEncoder::SvtAv1,
-        AvailableEncoder::Librav1e,
-    ];
+    let svt_rav1e = vec![AvailableEncoder::SvtAv1, AvailableEncoder::Librav1e];
     let result = select_encoder(&svt_rav1e, EncoderPreference::Aom).unwrap();
     assert_eq!(result.encoder, AvailableEncoder::SvtAv1);
 }

@@ -31,8 +31,8 @@ prefer_encoder = "svt"
 # Quality tier for encoding
 # Options: "high", "very_high"
 # "very_high" uses slower presets for maximum quality (decreases preset by 1)
-# Default: "high" (good quality with reasonable encoding time)
-quality_tier = "high"
+# Default: "very_high" (maximum quality; slower presets)
+quality_tier = "very_high"
 
 # ============================================================================
 # OUTPUT VALIDATION

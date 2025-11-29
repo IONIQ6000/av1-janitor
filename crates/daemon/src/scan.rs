@@ -23,7 +23,7 @@ pub fn scan_libraries(roots: &[PathBuf]) -> Result<Vec<CandidateFile>> {
 
     for root in roots {
         debug!("Scanning library root: {}", root.display());
-        
+
         // Check if root exists and is accessible
         if !root.exists() {
             warn!("Library root does not exist: {}", root.display());

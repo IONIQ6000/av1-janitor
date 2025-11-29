@@ -1,4 +1,4 @@
-use av1d_daemon::probe::{ProbeResult, FormatInfo, VideoStream};
+use av1d_daemon::probe::{FormatInfo, ProbeResult, VideoStream};
 use av1d_daemon::validate::ValidationError;
 use proptest::prelude::*;
 
@@ -28,11 +28,11 @@ fn property_output_validation() {
             original_height,
             "hevc",
         );
-        
+
         // Create output probe result based on test parameters
         let output_duration = original_duration.map(|d| d + output_duration_offset);
         let mut output_video_streams = Vec::new();
-        
+
         // Add AV1 streams
         for i in 0..num_av1_streams {
             output_video_streams.push(VideoStream {
@@ -47,7 +47,7 @@ fn property_output_validation() {
                 is_default: i == 0,
             });
         }
-        
+
         // Add other video streams if requested
         if has_other_video_streams && num_av1_streams > 0 {
             output_video_streams.push(VideoStream {
@@ -62,7 +62,7 @@ fn property_output_validation() {
                 is_default: false,
             });
         }
-        
+
         let output_probe = ProbeResult {
             format: FormatInfo {
                 duration: output_duration,
@@ -73,7 +73,7 @@ fn property_output_validation() {
             audio_streams: vec![],
             subtitle_streams: vec![],
         };
-        
+
         // Determine expected validation result
         let expected_result = determine_expected_result(
             &original_probe,
@@ -81,7 +81,7 @@ fn property_output_validation() {
             num_av1_streams,
             output_duration_offset,
         );
-        
+
         // Verify the validation logic matches expectations
         verify_validation_logic(
             &original_probe,
@@ -94,12 +94,7 @@ fn property_output_validation() {
 }
 
 /// Helper function to create a ProbeResult for testing
-fn create_probe_result(
-    duration: Option<f64>,
-    width: i32,
-    height: i32,
-    codec: &str,
-) -> ProbeResult {
+fn create_probe_result(duration: Option<f64>, width: i32, height: i32, codec: &str) -> ProbeResult {
     ProbeResult {
         format: FormatInfo {
             duration,
@@ -133,14 +128,15 @@ fn determine_expected_result(
     if num_av1_streams == 0 {
         return Err(ValidationError::NoAv1Stream);
     }
-    
+
     if num_av1_streams > 1 {
         return Err(ValidationError::MultipleAv1Streams);
     }
-    
+
     // Check duration mismatch (epsilon = 2.0 seconds)
-    if let (Some(original_duration), Some(output_duration)) = 
-        (original_probe.format.duration, output_probe.format.duration) {
+    if let (Some(original_duration), Some(output_duration)) =
+        (original_probe.format.duration, output_probe.format.duration)
+    {
         let duration_diff = (original_duration - output_duration).abs();
         if duration_diff > 2.0 {
             return Err(ValidationError::DurationMismatch {
@@ -149,7 +145,7 @@ fn determine_expected_result(
             });
         }
     }
-    
+
     Ok(())
 }
 
@@ -162,11 +158,12 @@ fn verify_validation_logic(
     _duration_offset: f64,
 ) {
     // Simulate validation logic
-    let av1_streams: Vec<_> = output_probe.video_streams
+    let av1_streams: Vec<_> = output_probe
+        .video_streams
         .iter()
         .filter(|s| s.codec_name == "av1")
         .collect();
-    
+
     // Check AV1 stream count
     if av1_streams.is_empty() {
         assert!(
@@ -175,7 +172,7 @@ fn verify_validation_logic(
         );
         return;
     }
-    
+
     if av1_streams.len() > 1 {
         assert!(
             matches!(expected_result, Err(ValidationError::MultipleAv1Streams)),
@@ -183,20 +180,24 @@ fn verify_validation_logic(
         );
         return;
     }
-    
+
     // Check duration
-    if let (Some(original_duration), Some(output_duration)) = 
-        (original_probe.format.duration, output_probe.format.duration) {
+    if let (Some(original_duration), Some(output_duration)) =
+        (original_probe.format.duration, output_probe.format.duration)
+    {
         let duration_diff = (original_duration - output_duration).abs();
         if duration_diff > 2.0 {
             assert!(
-                matches!(expected_result, Err(ValidationError::DurationMismatch { .. })),
+                matches!(
+                    expected_result,
+                    Err(ValidationError::DurationMismatch { .. })
+                ),
                 "Expected DurationMismatch error when duration differs by more than 2 seconds"
             );
             return;
         }
     }
-    
+
     // All checks passed
     assert!(
         expected_result.is_ok(),
@@ -209,9 +210,12 @@ fn verify_validation_logic(
 fn test_valid_output_single_av1_stream() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
     let output_probe = create_probe_result(Some(3601.0), 1920, 1080, "av1");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 1, 1.0);
-    assert!(result.is_ok(), "Should pass validation with single AV1 stream and duration within epsilon");
+    assert!(
+        result.is_ok(),
+        "Should pass validation with single AV1 stream and duration within epsilon"
+    );
 }
 
 /// Unit test: Invalid output with no AV1 streams
@@ -219,7 +223,7 @@ fn test_valid_output_single_av1_stream() {
 fn test_invalid_output_no_av1_stream() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
     let output_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 0, 0.0);
     assert!(matches!(result, Err(ValidationError::NoAv1Stream)));
 }
@@ -228,7 +232,7 @@ fn test_invalid_output_no_av1_stream() {
 #[test]
 fn test_invalid_output_multiple_av1_streams() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
-    
+
     let output_probe = ProbeResult {
         format: FormatInfo {
             duration: Some(3600.0),
@@ -262,7 +266,7 @@ fn test_invalid_output_multiple_av1_streams() {
         audio_streams: vec![],
         subtitle_streams: vec![],
     };
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 2, 0.0);
     assert!(matches!(result, Err(ValidationError::MultipleAv1Streams)));
 }
@@ -272,9 +276,12 @@ fn test_invalid_output_multiple_av1_streams() {
 fn test_invalid_output_duration_mismatch() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
     let output_probe = create_probe_result(Some(3605.0), 1920, 1080, "av1");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 1, 5.0);
-    assert!(matches!(result, Err(ValidationError::DurationMismatch { .. })));
+    assert!(matches!(
+        result,
+        Err(ValidationError::DurationMismatch { .. })
+    ));
 }
 
 /// Unit test: Valid output at duration boundary (exactly 2 seconds)
@@ -282,9 +289,12 @@ fn test_invalid_output_duration_mismatch() {
 fn test_valid_output_duration_boundary() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
     let output_probe = create_probe_result(Some(3602.0), 1920, 1080, "av1");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 1, 2.0);
-    assert!(result.is_ok(), "Should pass validation when duration differs by exactly 2 seconds");
+    assert!(
+        result.is_ok(),
+        "Should pass validation when duration differs by exactly 2 seconds"
+    );
 }
 
 /// Unit test: Invalid output just over duration boundary
@@ -292,10 +302,12 @@ fn test_valid_output_duration_boundary() {
 fn test_invalid_output_duration_just_over_boundary() {
     let original_probe = create_probe_result(Some(3600.0), 1920, 1080, "hevc");
     let output_probe = create_probe_result(Some(3602.1), 1920, 1080, "av1");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 1, 2.1);
-    assert!(matches!(result, Err(ValidationError::DurationMismatch { .. })),
-        "Should fail validation when duration differs by more than 2 seconds");
+    assert!(
+        matches!(result, Err(ValidationError::DurationMismatch { .. })),
+        "Should fail validation when duration differs by more than 2 seconds"
+    );
 }
 
 /// Unit test: Valid output with no duration information
@@ -303,7 +315,10 @@ fn test_invalid_output_duration_just_over_boundary() {
 fn test_valid_output_no_duration() {
     let original_probe = create_probe_result(None, 1920, 1080, "hevc");
     let output_probe = create_probe_result(None, 1920, 1080, "av1");
-    
+
     let result = determine_expected_result(&original_probe, &output_probe, 1, 0.0);
-    assert!(result.is_ok(), "Should pass validation when duration is not available");
+    assert!(
+        result.is_ok(),
+        "Should pass validation when duration is not available"
+    );
 }

@@ -45,7 +45,7 @@ pub fn websafe_input_flags() -> Vec<String> {
 /// Returns None if dimensions are even and not WebLike
 pub fn pad_filter(width: i32, height: i32, is_web_like: bool) -> Option<String> {
     let needs_padding = is_web_like || width % 2 != 0 || height % 2 != 0;
-    
+
     if needs_padding {
         Some("-vf".to_string())
     } else {

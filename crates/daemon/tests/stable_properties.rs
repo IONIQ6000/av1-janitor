@@ -21,11 +21,11 @@ fn property_stable_file_detection() {
         let result = rt.block_on(async {
             let temp_dir = TempDir::new().unwrap();
             let file_path = temp_dir.path().join("test_video.mkv");
-            
+
             // Create initial file with initial_size
             let initial_content = vec![0u8; initial_size as usize];
             fs::write(&file_path, &initial_content).unwrap();
-            
+
             // Get metadata for CandidateFile
             let metadata = fs::metadata(&file_path).unwrap();
             let candidate = CandidateFile {
@@ -33,34 +33,34 @@ fn property_stable_file_detection() {
                 size_bytes: metadata.len(),
                 modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
             };
-            
+
             // Spawn a task to modify the file if should_modify is true
             if should_modify {
                 let file_path_clone = file_path.clone();
                 tokio::spawn(async move {
                     // Wait a bit before modifying
                     tokio::time::sleep(Duration::from_millis(wait_ms / 2)).await;
-                    
+
                     // Modify file size
                     let new_size = (initial_size as i64 + size_delta).max(0) as u64;
                     let new_content = vec![0u8; new_size as usize];
                     let _ = fs::write(&file_path_clone, &new_content);
                 });
             }
-            
+
             // Check stability with short duration for testing
             let is_stable = check_stability(&candidate, Duration::from_millis(wait_ms)).await.unwrap();
-            
+
             // Get final file size to check if modification actually happened
             let final_metadata = fs::metadata(&file_path).unwrap();
             let final_size = final_metadata.len();
-            
+
             (is_stable, final_size)
         });
-        
+
         let (is_stable, final_size) = result;
         let size_changed = final_size != initial_size;
-        
+
         // Verify the result: stability should match whether size changed
         prop_assert_eq!(is_stable, !size_changed,
             "Stability detection mismatch: is_stable={}, size_changed={} (initial={}, final={})",
@@ -75,20 +75,22 @@ fn test_stable_file_no_changes() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("stable.mkv");
-        
+
         // Create file
         fs::write(&file_path, "stable content").unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
+
         // Check stability with short duration
-        let is_stable = check_stability(&candidate, Duration::from_millis(100)).await.unwrap();
-        
+        let is_stable = check_stability(&candidate, Duration::from_millis(100))
+            .await
+            .unwrap();
+
         assert!(is_stable, "File with no changes should be stable");
     });
 }
@@ -100,27 +102,29 @@ fn test_unstable_file_being_written() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("unstable.mkv");
-        
+
         // Create initial file
         fs::write(&file_path, "initial content").unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
+
         // Spawn task to modify file during stability check
         let file_path_clone = file_path.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(50)).await;
             fs::write(&file_path_clone, "modified content with more data").unwrap();
         });
-        
+
         // Check stability
-        let is_stable = check_stability(&candidate, Duration::from_millis(150)).await.unwrap();
-        
+        let is_stable = check_stability(&candidate, Duration::from_millis(150))
+            .await
+            .unwrap();
+
         assert!(!is_stable, "File being written to should be unstable");
     });
 }
@@ -132,18 +136,18 @@ fn test_unstable_file_growing() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("growing.mkv");
-        
+
         // Create initial file
         let initial_content = vec![0u8; 1000];
         fs::write(&file_path, &initial_content).unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
+
         // Spawn task to grow file during stability check
         let file_path_clone = file_path.clone();
         tokio::spawn(async move {
@@ -151,10 +155,12 @@ fn test_unstable_file_growing() {
             let new_content = vec![0u8; 2000]; // Double the size
             fs::write(&file_path_clone, &new_content).unwrap();
         });
-        
+
         // Check stability
-        let is_stable = check_stability(&candidate, Duration::from_millis(150)).await.unwrap();
-        
+        let is_stable = check_stability(&candidate, Duration::from_millis(150))
+            .await
+            .unwrap();
+
         assert!(!is_stable, "Growing file should be unstable");
     });
 }
@@ -166,18 +172,18 @@ fn test_unstable_file_shrinking() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("shrinking.mkv");
-        
+
         // Create initial file
         let initial_content = vec![0u8; 2000];
         fs::write(&file_path, &initial_content).unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
+
         // Spawn task to shrink file during stability check
         let file_path_clone = file_path.clone();
         tokio::spawn(async move {
@@ -185,10 +191,12 @@ fn test_unstable_file_shrinking() {
             let new_content = vec![0u8; 1000]; // Half the size
             fs::write(&file_path_clone, &new_content).unwrap();
         });
-        
+
         // Check stability
-        let is_stable = check_stability(&candidate, Duration::from_millis(150)).await.unwrap();
-        
+        let is_stable = check_stability(&candidate, Duration::from_millis(150))
+            .await
+            .unwrap();
+
         assert!(!is_stable, "Shrinking file should be unstable");
     });
 }
@@ -200,27 +208,27 @@ fn test_file_deleted_during_check() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("deleted.mkv");
-        
+
         // Create initial file
         fs::write(&file_path, "content").unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
+
         // Spawn task to delete file during stability check
         let file_path_clone = file_path.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(50)).await;
             let _ = fs::remove_file(&file_path_clone);
         });
-        
+
         // Check stability - should return error
         let result = check_stability(&candidate, Duration::from_millis(150)).await;
-        
+
         assert!(result.is_err(), "Should return error when file is deleted");
     });
 }
@@ -231,24 +239,30 @@ fn test_stability_various_sizes() {
     let rt = Runtime::new().unwrap();
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let sizes = vec![0, 1, 100, 1024, 1024 * 1024, 100 * 1024 * 1024];
-        
+
         for size in sizes {
             let file_path = temp_dir.path().join(format!("size_{}.mkv", size));
             let content = vec![0u8; size];
             fs::write(&file_path, &content).unwrap();
-            
+
             let metadata = fs::metadata(&file_path).unwrap();
             let candidate = CandidateFile {
                 path: file_path.clone(),
                 size_bytes: metadata.len(),
                 modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
             };
-            
-            let is_stable = check_stability(&candidate, Duration::from_millis(100)).await.unwrap();
-            
-            assert!(is_stable, "Stable file of size {} should be detected as stable", size);
+
+            let is_stable = check_stability(&candidate, Duration::from_millis(100))
+                .await
+                .unwrap();
+
+            assert!(
+                is_stable,
+                "Stable file of size {} should be detected as stable",
+                size
+            );
         }
     });
 }
@@ -260,19 +274,21 @@ fn test_zero_byte_file_stability() {
     rt.block_on(async {
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("empty.mkv");
-        
+
         // Create empty file
         fs::write(&file_path, "").unwrap();
-        
+
         let metadata = fs::metadata(&file_path).unwrap();
         let candidate = CandidateFile {
             path: file_path.clone(),
             size_bytes: metadata.len(),
             modified_time: metadata.modified().unwrap_or_else(|_| SystemTime::now()),
         };
-        
-        let is_stable = check_stability(&candidate, Duration::from_millis(100)).await.unwrap();
-        
+
+        let is_stable = check_stability(&candidate, Duration::from_millis(100))
+            .await
+            .unwrap();
+
         assert!(is_stable, "Empty file should be stable if not modified");
     });
 }

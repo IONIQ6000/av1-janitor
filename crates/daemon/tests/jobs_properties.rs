@@ -1,5 +1,5 @@
-use av1d_daemon::jobs::{create_job, load_all_jobs, save_job, Job, JobStatus};
 use av1d_daemon::classify::{SourceClassification, SourceType};
+use av1d_daemon::jobs::{create_job, load_all_jobs, save_job, Job, JobStatus};
 use av1d_daemon::probe::{FormatInfo, ProbeResult, VideoStream};
 use av1d_daemon::scan::CandidateFile;
 use chrono::{DateTime, Utc};
@@ -14,7 +14,7 @@ fn test_compilation() {
 }
 
 /// **Feature: av1-reencoder, Property 25: Job persistence**
-/// *For any* job state change, the corresponding JSON file should be updated atomically 
+/// *For any* job state change, the corresponding JSON file should be updated atomically
 /// with all current metadata
 /// **Validates: Requirements 23.1, 23.2, 23.3, 23.4**
 #[test]
@@ -37,7 +37,7 @@ fn property_job_persistence() {
 
         // Loaded job should match original
         let loaded_job = &loaded_jobs[0];
-        
+
         prop_assert_eq!(&loaded_job.id, &job.id, "Job ID should match");
         prop_assert_eq!(&loaded_job.source_path, &job.source_path, "Source path should match");
         prop_assert_eq!(&loaded_job.output_path, &job.output_path, "Output path should match");
@@ -119,15 +119,25 @@ fn test_job_update_persistence() {
     let loaded_jobs = load_all_jobs(state_dir).unwrap();
 
     assert_eq!(loaded_jobs.len(), 1, "Should still have only one job");
-    assert_eq!(loaded_jobs[0].status, JobStatus::Running, "Status should be updated");
-    assert!(loaded_jobs[0].started_at.is_some(), "started_at should be set");
+    assert_eq!(
+        loaded_jobs[0].status,
+        JobStatus::Running,
+        "Status should be updated"
+    );
+    assert!(
+        loaded_jobs[0].started_at.is_some(),
+        "started_at should be set"
+    );
 }
 
 /// Test that load_all_jobs handles non-existent directory
 #[test]
 fn test_load_from_nonexistent_directory() {
     let result = load_all_jobs(&PathBuf::from("/nonexistent/directory"));
-    assert!(result.is_ok(), "Should return Ok with empty vec for non-existent directory");
+    assert!(
+        result.is_ok(),
+        "Should return Ok with empty vec for non-existent directory"
+    );
     assert_eq!(result.unwrap().len(), 0, "Should return empty vec");
 }
 
@@ -169,7 +179,11 @@ fn test_load_skips_temporary_files() {
     // Load jobs - should skip temporary file
     let loaded_jobs = load_all_jobs(state_dir).unwrap();
 
-    assert_eq!(loaded_jobs.len(), 1, "Should load only the non-temporary job");
+    assert_eq!(
+        loaded_jobs.len(),
+        1,
+        "Should load only the non-temporary job"
+    );
     assert_eq!(loaded_jobs[0].id, job.id);
 }
 
@@ -180,7 +194,7 @@ fn test_save_creates_directory() {
     let state_dir = temp_dir.path().join("nested").join("directory");
 
     let job = create_test_job("/media/video.mkv", JobStatus::Pending);
-    
+
     // Directory doesn't exist yet
     assert!(!state_dir.exists());
 
@@ -188,7 +202,10 @@ fn test_save_creates_directory() {
     save_job(&job, &state_dir).unwrap();
 
     assert!(state_dir.exists(), "Directory should be created");
-    assert!(state_dir.join(format!("{}.json", job.id)).exists(), "Job file should exist");
+    assert!(
+        state_dir.join(format!("{}.json", job.id)).exists(),
+        "Job file should exist"
+    );
 }
 
 // Helper functions and strategies
@@ -217,53 +234,85 @@ fn job_strategy() -> impl Strategy<Value = Job> {
             option_string_strategy(),
             option_bool_strategy(),
         ),
-    ).prop_map(|(
-        (source_path, output_path, status, reason, original_bytes, new_bytes, is_web_like, video_codec, video_bitrate),
-        (video_width, video_height, video_frame_rate, crf_used, preset_used, encoder_used, source_bit_depth, source_pix_fmt, is_hdr),
-    )| {
-        let created_at = Utc::now();
-        let started_at = if matches!(status, JobStatus::Running | JobStatus::Success | JobStatus::Failed | JobStatus::Skipped) {
-            Some(Utc::now())
-        } else {
-            None
-        };
-        let finished_at = if matches!(status, JobStatus::Success | JobStatus::Failed | JobStatus::Skipped) {
-            Some(Utc::now())
-        } else {
-            None
-        };
+    )
+        .prop_map(
+            |(
+                (
+                    source_path,
+                    output_path,
+                    status,
+                    reason,
+                    original_bytes,
+                    new_bytes,
+                    is_web_like,
+                    video_codec,
+                    video_bitrate,
+                ),
+                (
+                    video_width,
+                    video_height,
+                    video_frame_rate,
+                    crf_used,
+                    preset_used,
+                    encoder_used,
+                    source_bit_depth,
+                    source_pix_fmt,
+                    is_hdr,
+                ),
+            )| {
+                let created_at = Utc::now();
+                let started_at = if matches!(
+                    status,
+                    JobStatus::Running
+                        | JobStatus::Success
+                        | JobStatus::Failed
+                        | JobStatus::Skipped
+                ) {
+                    Some(Utc::now())
+                } else {
+                    None
+                };
+                let finished_at = if matches!(
+                    status,
+                    JobStatus::Success | JobStatus::Failed | JobStatus::Skipped
+                ) {
+                    Some(Utc::now())
+                } else {
+                    None
+                };
 
-        Job {
-            id: uuid::Uuid::new_v4().to_string(),
-            source_path,
-            output_path,
-            created_at,
-            started_at,
-            finished_at,
-            status,
-            reason,
-            original_bytes,
-            new_bytes,
-            is_web_like,
-            video_codec,
-            video_bitrate,
-            video_width,
-            video_height,
-            video_frame_rate,
-            crf_used,
-            preset_used,
-            encoder_used,
-            source_bit_depth,
-            source_pix_fmt,
-            is_hdr,
-            av1_quality: None,
-            target_bit_depth: None,
-            av1_profile: None,
-            quality_tier: None,
-            test_clip_path: None,
-            test_clip_approved: None,
-        }
-    })
+                Job {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    source_path,
+                    output_path,
+                    created_at,
+                    started_at,
+                    finished_at,
+                    status,
+                    reason,
+                    original_bytes,
+                    new_bytes,
+                    is_web_like,
+                    video_codec,
+                    video_bitrate,
+                    video_width,
+                    video_height,
+                    video_frame_rate,
+                    crf_used,
+                    preset_used,
+                    encoder_used,
+                    source_bit_depth,
+                    source_pix_fmt,
+                    is_hdr,
+                    av1_quality: None,
+                    target_bit_depth: None,
+                    av1_profile: None,
+                    quality_tier: None,
+                    test_clip_path: None,
+                    test_clip_approved: None,
+                }
+            },
+        )
 }
 
 fn path_strategy() -> impl Strategy<Value = PathBuf> {
@@ -272,7 +321,8 @@ fn path_strategy() -> impl Strategy<Value = PathBuf> {
         "/media/movies/movie.mp4",
         "/media/shows/show.avi",
         "/home/user/videos/test.mov",
-    ]).prop_map(PathBuf::from)
+    ])
+    .prop_map(PathBuf::from)
 }
 
 fn option_path_strategy() -> impl Strategy<Value = Option<PathBuf>> {
@@ -369,20 +419,26 @@ fn create_test_job(path: &str, status: JobStatus) -> Job {
 
     let mut job = create_job(candidate, probe, classification);
     job.status = status;
-    
-    if matches!(status, JobStatus::Running | JobStatus::Success | JobStatus::Failed | JobStatus::Skipped) {
+
+    if matches!(
+        status,
+        JobStatus::Running | JobStatus::Success | JobStatus::Failed | JobStatus::Skipped
+    ) {
         job.started_at = Some(Utc::now());
     }
-    
-    if matches!(status, JobStatus::Success | JobStatus::Failed | JobStatus::Skipped) {
+
+    if matches!(
+        status,
+        JobStatus::Success | JobStatus::Failed | JobStatus::Skipped
+    ) {
         job.finished_at = Some(Utc::now());
     }
-    
+
     job
 }
 
 /// **Feature: av1-reencoder, Property 21: Job status transitions**
-/// *For any* job, status transitions should follow the valid state machine 
+/// *For any* job, status transitions should follow the valid state machine
 /// (Pending → Running → Success/Failed/Skipped) with appropriate timestamp updates
 /// **Validates: Requirements 19.3, 19.4, 19.5**
 #[test]
@@ -483,15 +539,24 @@ fn test_timestamp_ordering() {
     av1d_daemon::jobs::update_job_status(&mut job, JobStatus::Running, state_dir).unwrap();
     let started_at = job.started_at.unwrap();
 
-    assert!(started_at >= created_at, "started_at should be >= created_at");
+    assert!(
+        started_at >= created_at,
+        "started_at should be >= created_at"
+    );
 
     // Transition to Success
     std::thread::sleep(std::time::Duration::from_millis(10));
     av1d_daemon::jobs::update_job_status(&mut job, JobStatus::Success, state_dir).unwrap();
     let finished_at = job.finished_at.unwrap();
 
-    assert!(finished_at >= started_at, "finished_at should be >= started_at");
-    assert!(finished_at >= created_at, "finished_at should be >= created_at");
+    assert!(
+        finished_at >= started_at,
+        "finished_at should be >= started_at"
+    );
+    assert!(
+        finished_at >= created_at,
+        "finished_at should be >= created_at"
+    );
 }
 
 /// Test that status updates are persisted correctly
